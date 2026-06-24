@@ -179,6 +179,12 @@ class AlgBFGSSQP:
         self.regularize_max_eigenvalues = opts.regularize_max_eigenvalues
 
         self.QPsolver = opts.QPsolver
+        self.osqp_options = {
+            "algebra": opts.osqp_algebra,
+            "cuda_fallback": opts.osqp_cuda_fallback,
+            "builtin_workspace_cache": opts.osqp_builtin_workspace_cache,
+            "settings": opts.osqp_settings,
+        }
 
         # experimental options
         self.stat_l2_model = opts.stat_l2_model
@@ -318,6 +324,7 @@ class AlgBFGSSQP:
                 self.QPsolver,
                 torch_device,
                 self.double_precision,
+                self.osqp_options,
             )
 
         self.linesearch_fn = lambda x, f, g, p, ls_maxit: lWW.linesearchWeakWolfe(
@@ -684,6 +691,7 @@ class AlgBFGSSQP:
                 self.QPsolver,
                 self.torch_device,
                 self.double_precision,
+                self.osqp_options,
             )
         except Exception:
             print("PyGRANSO:terminationQuadprogFailure")

@@ -83,7 +83,20 @@ Given the above, the **QP dimension** fed to the QP solver is on the order of **
 
 - **CUDA-based OSQP** is aimed at **large-scale** QPs where GPU parallelism pays off.
 - At **~1000 variables**, there is **virtually no timing benefit** from the CUDA algebra compared to the built-in (CPU) solver, and the GPU path can be **more memory intensive**.
-- So for typical PyGRANSO use (moderate `l`, QP size ~hundreds to ~1k), **CPU OSQP (`algebra="builtin"`) is appropriate**; enabling CUDA OSQP is unlikely to help and may use more memory.
+- So for typical PyGRANSO use (moderate `l`, QP size ~hundreds to ~1k), **CPU OSQP (`algebra="builtin"`) is often appropriate**; enabling CUDA OSQP is not guaranteed to help and may use more memory.
+- PyGRANSO's OSQP adapter now makes this backend policy explicit:
+  - `opts.osqp_algebra = "auto"` tries the Torch GPU QP path when CUDA is available; otherwise it uses builtin CPU OSQP.
+  - `opts.osqp_algebra = "torch"` forces the Python Torch OSQP prototype on `opts.torch_device`.
+  - `opts.osqp_settings["linear_solver"] = "auto"` is the Torch default and chooses dense or experimental sparse-CG from QP size and sparsity.
+  - `opts.osqp_settings["linear_solver"] = "dense"` or `"sparse_cg"` may be used to override the judge.
+  - `opts.osqp_settings["cuda_graph"] = True` enables the experimental fixed-work CUDA Graph sparse-CG path. It requires an integer `cg_fixed_iters`, `check_termination >= max_iter`, and disables data-dependent adaptive rho, Ruiz scaling, polishing, and `torch_compile_admm` for that solve.
+  - CUDA Graphs remain opt-in. They are intended for repeated CUDA QPs with stable sparsity; a structure change causes recapture and can make small PyGRANSO QPs substantially slower than CPU OSQP.
+  - `opts.osqp_builtin_workspace_cache = True` enables the fair builtin CPU comparison path, reusing an OSQP workspace and updating `P/A/q/l/u` only when the corresponding values change.
+  - Explicit `"sparse_cg"` failures are reported directly; only automatic sparse selection may retry dense when the dense KKT estimate is under the memory cap.
+  - `opts.osqp_algebra = "cuda"` is reserved for a real compiled Torch/CUDA interop backend and remains unimplemented.
+  - `opts.osqp_cuda_fallback = False` prevents accidental CUDA-to-CPU fallback for explicit builtin CUDA requests.
+  - `opts.osqp_cuda_fallback = True` allows a documented CPU fallback with a warning.
+- PyGRANSO does not differentiate through the OSQP QP solve. Autograd is used to form objective and constraint gradients before the QP is built.
 
 ---
 

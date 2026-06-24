@@ -56,6 +56,35 @@ By default, `pip` or `uv` may install a CPU-only build of PyTorch. For **GPU (CU
 
 Set `opts.torch_device = torch.device("cuda")` when calling PyGRANSO to use the GPU.
 
+### OSQP backend options
+
+PyGRANSO uses OSQP for its internal quadprog-compatible QP subproblems. The
+`auto` policy tries a Torch GPU solve when CUDA is available, and otherwise
+uses builtin CPU OSQP. For modest PyGRANSO QPs, CPU OSQP may still be faster
+and lighter than a GPU solve.
+
+- `opts.osqp_algebra = "auto"` uses CUDA Torch OSQP when CUDA is available;
+  otherwise it uses builtin CPU OSQP.
+- `opts.osqp_algebra = "builtin"` forces CPU OSQP.
+- `opts.osqp_algebra = "torch"` forces the Python Torch OSQP prototype on
+  `opts.torch_device`.
+- `opts.osqp_algebra = "cuda"` requests CUDA OSQP, which requires a compiled
+  Torch/CUDA interop backend and is not implemented in this adapter yet.
+- `opts.osqp_cuda_fallback = False` prevents accidental CPU OSQP fallback when
+  builtin OSQP is explicitly requested for CUDA tensors.
+- `opts.osqp_cuda_fallback = True` allows CPU OSQP fallback with an explicit
+  warning when CUDA QP interop is unavailable.
+- `opts.osqp_settings` may override OSQP setup settings. The default is
+  `{"eps_abs": 1e-12, "eps_rel": 1e-12, "polish": True, "verbose": False}`.
+  For the Torch prototype, `opts.osqp_settings["linear_solver"]` defaults to
+  `"auto"`, which chooses dense or experimental `"sparse_cg"` from the QP size
+  and sparsity. Users may still force `"dense"` or `"sparse_cg"`.
+  Explicit `"sparse_cg"` failures are reported directly; only automatic sparse
+  selection may retry dense when the dense KKT estimate is under the memory cap.
+
+PyGRANSO does not differentiate through the OSQP QP solve; autograd is used to
+compute the objective and constraint gradients before QP construction.
+
 ### Verify installation
 
 - **CPU:** `python test_cpu.py`
@@ -163,4 +192,3 @@ Thanks to other contributors and bug reporters:
 - [Ying Cui](https://sites.google.com/site/optyingcui/home): Advised the adversarial robustness problems.
 
 - [Chen Jiang](https://github.com/shoopshoop): Tested perceptual attack example (ex6). Tested PyGRANSO on Win10. Debugged updatePenaltyParameter function.
-

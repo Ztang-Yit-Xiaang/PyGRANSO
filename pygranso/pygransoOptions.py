@@ -330,6 +330,37 @@ def pygransoOptions(n, options):
 
         Select the QP solver used in the steering strategy and termination condition. Currently only OSQP is supported.
 
+        osqp_algebra
+        --------------------------------
+        String in {'auto','builtin','torch','cuda'}. Default value: 'auto'
+
+        Selects the OSQP algebra policy for PyGRANSO's QP subproblems.
+        The current adapter tries the Torch GPU QP path when CUDA is available
+        and otherwise uses builtin CPU OSQP when this is set to 'auto'.
+        The Python Torch prototype defaults osqp_settings['linear_solver'] to
+        'auto', which chooses between 'dense' and experimental 'sparse_cg' from
+        QP size and sparsity. Users may still force either concrete backend.
+        The 'cuda' value remains reserved for a compiled Torch/CUDA interop layer.
+
+        osqp_cuda_fallback
+        --------------------------------
+        Boolean value. Default value: False
+
+        If True, explicit builtin OSQP requests for CUDA PyGRANSO QP tensors may
+        fall back to CPU OSQP with a warning. If False, that route raises clearly.
+
+        osqp_builtin_workspace_cache
+        --------------------------------
+        Boolean value. Default value: False
+
+        Reuse a builtin CPU OSQP workspace across QPs with an unchanged CSC
+        sparsity pattern, updating P/A values, vectors, and the warm start.
+
+        osqp_settings
+        --------------------------------
+        Dict of OSQP setup settings. Default value:
+        {'eps_abs': 1e-12, 'eps_rel': 1e-12, 'polish': True, 'verbose': False}
+
         torch_device
         --------------------------------
         torch.device('cpu') OR torch.device('cuda'). Default value: torch.device('cpu')
@@ -532,6 +563,19 @@ def pygransoOptions(n, options):
         validator.setRealInIntervalOO("steering_c_mu", 0, 1)
         validator.setLogical("quadprog_info_msg")
         validator.setString("QPsolver")
+        validator.setString("osqp_algebra")
+        validator.validateAndSet(
+            "osqp_algebra",
+            lambda x: x in {"auto", "builtin", "torch", "cuda"},
+            "one of {'auto','builtin','torch','cuda'}",
+        )
+        validator.setLogical("osqp_cuda_fallback")
+        validator.setLogical("osqp_builtin_workspace_cache")
+        validator.validateAndSet(
+            "osqp_settings",
+            lambda x: isinstance(x, dict),
+            "a dict of OSQP settings",
+        )
         validator.setRealInIntervalCC("regularize_threshold", 1, np.inf)
         validator.setLogical("regularize_max_eigenvalues")
         validator.setLogical("stat_l2_model")
@@ -655,6 +699,14 @@ def getDefaults(n):
     setattr(default_opts, "regularize_max_eigenvalues", False)
     setattr(default_opts, "quadprog_info_msg", True)
     setattr(default_opts, "QPsolver", "osqp")
+    setattr(default_opts, "osqp_algebra", "auto")
+    setattr(default_opts, "osqp_cuda_fallback", False)
+    setattr(default_opts, "osqp_builtin_workspace_cache", False)
+    setattr(
+        default_opts,
+        "osqp_settings",
+        {"eps_abs": 1e-12, "eps_rel": 1e-12, "polish": True, "verbose": False},
+    )
     setattr(default_opts, "wolfe1", 1e-4)
     setattr(default_opts, "wolfe2", 0.5)
     setattr(default_opts, "linesearch_nondescent_maxit", 0)

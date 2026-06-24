@@ -16,6 +16,7 @@ class qpTC:
         QPsolver,
         torch_device,
         double_precision,
+        osqp_options=None,
     ):
         """
         qpTerminationCondition:
@@ -187,7 +188,16 @@ class qpTC:
         elif QPsolver == "osqp":
             #  formulation of QP has no 1/2
             self.solveQP_fn = lambda H: solveQP(
-                H, f, Aeq, beq, LB, UB, QPsolver, torch_device, double_precision
+                H,
+                f,
+                Aeq,
+                beq,
+                LB,
+                UB,
+                QPsolver,
+                torch_device,
+                double_precision,
+                osqp_options,
             )
 
         [y, _, qps_solved, ME] = self.solveQPRobust(torch_dtype)
