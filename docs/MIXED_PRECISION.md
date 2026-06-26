@@ -89,9 +89,9 @@ This note describes what to expect when using **`torch.autocast`** (or other mix
 - The QP subproblems are built from tensors that PyGRANSO has already created (in float32 or float64). Autocast does **not** change how the QP is built or solved; it only affects the **user-facing** objective/constraint and their gradients. So:
   - **No** autocast mixed precision inside the QP solver itself.
   - The OSQP CPU backend may copy data to CPU for OSQP's Python API.
-  - `opts.osqp_algebra="auto"` tries the Torch GPU QP path when CUDA is available and otherwise uses builtin CPU OSQP.
-  - The Torch QP path can choose dense or experimental sparse-CG linear solves; it does not call the compiled OSQP CUDA algebra backend.
-  - Native CUDA OSQP interop remains explicit: `opts.osqp_algebra="cuda"` is reserved for a compiled Torch/CUDA interop backend and remains unimplemented.
+  - `opts.osqp_algebra="auto"` follows `opts.torch_device`: CPU uses builtin OSQP and a validated accelerator uses the dense Torch reference route inside its KKT and memory envelope.
+  - The Torch QP path uses one reusable dense-LU backend. Archived sparse-CG and CUDA Graph settings now produce a migration error.
+  - Float64 is authoritative through estimated KKT conditioning around `1e8`. Float32 uses `1e-5` defaults and a conservative qualified conditioning envelope around `1e2`; harder float32 cases remain stress evidence. MPS is float32-only and remains unclaimed until real-hardware LU validation is available, while MPS float64 auto requests return a builtin CPU result.
   - Impact of autocast is **only** on the quality and cost of the function/gradient values that PyGRANSO feeds into the QP and the rest of the algorithm.
 
 ---

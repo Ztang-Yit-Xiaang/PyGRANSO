@@ -1,0 +1,83 @@
+# Torch-OSQP Completion Audit
+
+Date: 2026-06-24  
+Scope: revised dense Torch reference pipeline and release gates
+
+This audit separates implemented behavior from local evidence and external
+release gates. A configured gate is not reported as passing until its runner
+has produced evidence.
+
+## Architecture and migration
+
+| Requirement | Authoritative evidence | Status |
+| --- | --- | --- |
+| Preserve research snapshot | Branch `archive/sparse-cg-cuda-graph`, commit `da142c1`, baseline 79-test result in the edit log | Implemented |
+| Signed archive tag | No configured Git signing key and no secret GPG/SSH key on this host | Pending human signing identity |
+| Remove research execution from active path | Legacy benchmark, presentation, old adapter test, custom CG, sparse operator, and CUDA Graph code absent from the feature branch; archive branch retains them | Implemented |
+| Dense private LU lifecycle | `torchLinearSolve.py` uses `lu_factor_ex`, `lu_solve`, finite/status checks, RHS normalization, reuse, and optional diagnostics | Implemented and unit tested |
+| Per-run state | `TorchOSQPWorkspace` is created by each `AlgBFGSSQP` and owns Torch/builtin state, signatures, scaling, factors, and diagnostics | Implemented and unit tested |
+| Invalidation contract | Structure, order signature, dimensions, dtype, device, and backend reset state; compatible value updates retain warm state and refactor | Implemented and unit tested |
+
+## Numerical and public behavior
+
+| Requirement | Authoritative evidence | Status |
+| --- | --- | --- |
+| Preserve KKT/ADMM/projection/dual/residual equations | `torchOSQP.py` plus `test_torch_osqp_kkt.py` | Implemented |
+| Ruiz scaling, adaptive rho, warm starts, strict polishing | Feature tests and direct-solver tests | Implemented |
+| Public algebra set is exactly auto/builtin/torch | Adapter validation and policy tests | Implemented |
+| CPU auto policy | Builtin selection test | Implemented |
+| Explicit Torch never changes backend | Explicit unsolved/error tests | Implemented |
+| Auto selection and runtime fallback telemetry | Exception, unsolved-status, unsupported-device, memory, and CUDA policy tests | Implemented |
+| MPS float64 behavior | Synthetic hardware-independent test verifies builtin CPU float64 result | Implemented; MPS remains unclaimed |
+| Dense limit and memory preflight | `n + m <= 2400`, warning/attempt behavior, selection tests, benchmark envelope check | Implemented |
+| Common defaults | Adapter defaults and rendered specification | Implemented |
+| Validation and symmetry contract | Invalid shape/dtype/device/NaN/bounds/asymmetry tests and optional eigenvalue diagnostic | Implemented |
+| No false infeasibility claims | Torch status vocabulary is solved/max-iteration only; hard QP errors propagate to PyGRANSO fallback contracts | Implemented |
+
+Float64 is the authoritative path through estimated KKT conditioning around
+`1e8`. Float32 uses the requested `1e-5` tolerances but is qualified only near
+estimated KKT conditioning `1e2`. A diagnostic mixed-precision solve showed
+that casting solutions and duals back to float32 still violated stationarity
+tolerances in 7/10 cases at condition `1e4`, 9/10 at `1e6`, and 10/10 at
+`1e8`. Claiming the float64 envelope for returned float32 values would therefore
+be unsupported by the requested numerical contract.
+
+## Validation and evidence
+
+| Gate | Evidence | Status |
+| --- | --- | --- |
+| Deterministic/unit/differential/metamorphic/PyGRANSO | Local pytest suite | Passing locally |
+| Windows CPU float64 | 300 rows; 175 condition-qualified release-gate passes and 125 non-gating stress passes | Passing locally |
+| Windows CPU qualified float32 | 300 rows; 199 condition-qualified release-gate passes and 100 non-gating stress failures | Passing locally |
+| NVIDIA CUDA float64 | 300 rows; 175 condition-qualified release-gate passes and 125 non-gating stress passes | Correctness passing locally |
+| NVIDIA CUDA qualified float32 | 300 rows; 200 condition-qualified release-gate passes and 100 non-gating stress failures | Correctness passing locally |
+| NVIDIA CUDA performance | B1/B2/B3 end-to-end medians 12.48x, 21.33x, and 43.46x builtin CPU | Failed; backend unpromoted |
+| Linux/Windows/macOS CPU matrix | `torch-osqp-core.yml` | Configured; external runs pending |
+| PyTorch 2.8 and current stable | Core workflow matrix, including Python 3.10-3.13 endpoints | Configured; external runs pending |
+| Nightly 100-seed platform buckets | `torch-osqp-nightly.yml` | Configured; external runs pending |
+| CUDA real-hardware promotion | Manual self-hosted correctness, stress, and 5x workflow | Configured; expected to remain failed until performance improves |
+| ROCm and Apple MPS | No real runner | Unclaimed by design |
+
+Every stability bucket writes a case CSV, environment/settings/seed manifest,
+Markdown summary, and one serialized QP per failure. Provenance is captured
+before output creation so the dirty flag describes source state. The manifest
+also hashes the maintained source tree, allowing exact identification before a
+human creates the feature commit.
+
+## Documentation and reporting
+
+| Deliverable | Status |
+| --- | --- |
+| Two-part decision-complete Markdown specification | Implemented |
+| Rendered PDF with TOC, support/risk tables, decision log, and controlled breaks | Implemented and visually inspected |
+| Dense benchmark and B1/B2/B3 performance gate | Implemented |
+| Code-edit log | Maintained at `.codex/code-edit-log.md` |
+
+## Remaining release actions
+
+1. Run the configured hosted Linux/Windows/macOS and PyTorch-version workflows.
+2. Configure a real signing identity and create signed tag
+   `research-sparse-cg-cuda-graph-final` at `da142c1`.
+3. Keep CUDA unpromoted until its representative end-to-end median is no worse
+   than 5x builtin CPU OSQP.
+4. Obtain ROCm and MPS runners before making either support claim.

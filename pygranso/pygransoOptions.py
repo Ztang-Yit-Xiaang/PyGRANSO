@@ -332,38 +332,26 @@ def pygransoOptions(n, options):
 
         osqp_algebra
         --------------------------------
-        String in {'auto','builtin','torch','cuda'}. Default value: 'auto'
+        String in {'auto','builtin','torch'}. Default value: 'auto'
 
         Selects the OSQP algebra policy for PyGRANSO's QP subproblems.
-        The current adapter tries the Torch GPU QP path when CUDA is available
-        and otherwise uses builtin CPU OSQP when this is set to 'auto'.
-        The Python Torch prototype defaults osqp_settings['linear_solver'] to
-        'auto', which chooses between 'dense' and experimental 'sparse_cg' from
-        QP size and sparsity. Users may still force either concrete backend.
-        The 'cuda' value remains reserved for a compiled Torch/CUDA interop layer.
-
-        osqp_cuda_fallback
-        --------------------------------
-        Boolean value. Default value: False
-
-        If True, explicit builtin OSQP requests for CUDA PyGRANSO QP tensors may
-        fall back to CPU OSQP with a warning. If False, that route raises clearly.
-
-        osqp_builtin_workspace_cache
-        --------------------------------
-        Boolean value. Default value: False
-
-        Reuse a builtin CPU OSQP workspace across QPs with an unchanged CSC
-        sparsity pattern, updating P/A values, vectors, and the warm start.
+        The 'auto' policy follows torch_device: CPU uses builtin OSQP and a
+        validated accelerator uses the dense Torch reference route inside its
+        supported KKT and memory envelope. Unsupported or unsuccessful Torch
+        solves fall back to builtin OSQP with a warning and diagnostics.
+        The Torch route exposes no nested linear-solver selector.
+        Builtin workspaces and structurally compatible warm starts are reused
+        automatically within one BFGS-SQP run.
 
         osqp_settings
         --------------------------------
-        Dict of OSQP setup settings. Default value:
-        {'eps_abs': 1e-12, 'eps_rel': 1e-12, 'polish': True, 'verbose': False}
+        Dict of common builtin/Torch OSQP settings. The adapter supplies
+        dtype-aware defaults (1e-8 for float64 and 1e-5 for float32), Ruiz
+        scaling, adaptive rho, polishing, and warm starts.
 
         torch_device
         --------------------------------
-        torch.device('cpu') OR torch.device('cuda'). Default value: torch.device('cpu')
+        A supported torch.device. Default value: torch.device('cpu')
 
         Choose torch.device used for matrix operation in PyGRANSO.
         opts.torch_device = torch.device('cuda') if one wants to use cuda device
@@ -566,11 +554,9 @@ def pygransoOptions(n, options):
         validator.setString("osqp_algebra")
         validator.validateAndSet(
             "osqp_algebra",
-            lambda x: x in {"auto", "builtin", "torch", "cuda"},
-            "one of {'auto','builtin','torch','cuda'}",
+            lambda x: x in {"auto", "builtin", "torch"},
+            "one of {'auto','builtin','torch'}",
         )
-        validator.setLogical("osqp_cuda_fallback")
-        validator.setLogical("osqp_builtin_workspace_cache")
         validator.validateAndSet(
             "osqp_settings",
             lambda x: isinstance(x, dict),
@@ -700,12 +686,10 @@ def getDefaults(n):
     setattr(default_opts, "quadprog_info_msg", True)
     setattr(default_opts, "QPsolver", "osqp")
     setattr(default_opts, "osqp_algebra", "auto")
-    setattr(default_opts, "osqp_cuda_fallback", False)
-    setattr(default_opts, "osqp_builtin_workspace_cache", False)
     setattr(
         default_opts,
         "osqp_settings",
-        {"eps_abs": 1e-12, "eps_rel": 1e-12, "polish": True, "verbose": False},
+        {},
     )
     setattr(default_opts, "wolfe1", 1e-4)
     setattr(default_opts, "wolfe2", 0.5)

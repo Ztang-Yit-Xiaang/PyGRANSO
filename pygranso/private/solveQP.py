@@ -3,15 +3,10 @@ import numpy as np
 import torch
 from gurobipy import GRB
 
-from pygranso.private.osqpTorchAdapter import (
-    reset_builtin_osqp_workspace,
-    solve_osqp_torch_qp,
-)
+from pygranso.private.osqpTorchAdapter import solve_osqp_torch_qp
+from pygranso.private.osqpWorkspace import TorchOSQPWorkspace
 
 QP_REQUESTS = 0
-OSQP_WARM_STATE = None
-OSQP_WARM_SIGNATURE = None
-OSQP_LAST_INFO = None
 OSQP_TRACE = None
 
 
@@ -180,8 +175,8 @@ def getErr():
     return [QP_REQUESTS, errors]
 
 
-def getLastOSQPInfo():
-    return OSQP_LAST_INFO
+def getLastOSQPInfo(workspace=None):
+    return None if workspace is None else workspace.last_info
 
 
 def beginOSQPTrace(capture_data=True):
@@ -282,12 +277,9 @@ def _same_tensor_values(left, right):
     return torch.equal(left_csr.values(), right_csr.values())
 
 
-def resetOSQPWarmState():
-    global OSQP_WARM_STATE, OSQP_WARM_SIGNATURE, OSQP_LAST_INFO
-    OSQP_WARM_STATE = None
-    OSQP_WARM_SIGNATURE = None
-    OSQP_LAST_INFO = None
-    reset_builtin_osqp_workspace()
+def resetOSQPWarmState(workspace=None):
+    if workspace is not None:
+        workspace.reset()
 
 
 def _solve_osqp_with_warm_state(
@@ -301,40 +293,30 @@ def _solve_osqp_with_warm_state(
     double_precision,
     osqp_options,
 ):
-    global OSQP_WARM_STATE, OSQP_WARM_SIGNATURE, OSQP_LAST_INFO
-
     options = _copy_osqp_options(osqp_options)
-    algebra = options.get("algebra", "auto")
-    use_torch_state = algebra in {"auto", "torch"}
-    if not use_torch_state:
-        result = solve_osqp_torch_qp(
-            H, f, A, b, LB, UB, torch_device, double_precision, options
-        )
-        OSQP_LAST_INFO = result[1] if isinstance(result, tuple) else None
-        return result
-
+    workspace = options.pop("workspace", None)
+    if workspace is None:
+        workspace = TorchOSQPWorkspace()
+    if not isinstance(workspace, TorchOSQPWorkspace):
+        raise TypeError("osqp_options['workspace'] must be a TorchOSQPWorkspace.")
     settings = options.setdefault("settings", {})
-    signature = _osqp_warm_signature(H, A, LB, UB, torch_device, double_precision)
-    if OSQP_WARM_SIGNATURE == signature and OSQP_WARM_STATE is not None:
-        settings["warm_start"] = True
-        settings["initial_state"] = OSQP_WARM_STATE
-    settings["return_state"] = True
+    requested_return_info = bool(settings.get("return_info", False))
     settings["return_info"] = True
-
     result = solve_osqp_torch_qp(
-        H, f, A, b, LB, UB, torch_device, double_precision, options
+        H,
+        f,
+        A,
+        b,
+        LB,
+        UB,
+        torch_device,
+        double_precision,
+        options,
+        workspace,
     )
-    if isinstance(result, tuple):
-        solution, info = result
-        OSQP_LAST_INFO = info
-        OSQP_WARM_STATE = info.get("state")
-        OSQP_WARM_SIGNATURE = signature if OSQP_WARM_STATE is not None else None
-        return solution
-
-    OSQP_WARM_STATE = None
-    OSQP_WARM_SIGNATURE = None
-    OSQP_LAST_INFO = None
-    return result
+    solution, info = result
+    workspace.last_info = info
+    return (solution, info) if requested_return_info else solution
 
 
 def _copy_osqp_options(osqp_options):
@@ -344,16 +326,3 @@ def _copy_osqp_options(osqp_options):
     if isinstance(options.get("settings"), dict):
         options["settings"] = dict(options["settings"])
     return options
-
-
-def _osqp_warm_signature(H, A, LB, UB, torch_device, double_precision):
-    return (
-        tuple(H.shape),
-        None if A is None else tuple(A.shape),
-        tuple(LB.shape),
-        tuple(UB.shape),
-        str(torch.device(torch_device)),
-        bool(double_precision),
-        str(getattr(H, "layout", "unknown")),
-        None if A is None else str(getattr(A, "layout", "unknown")),
-    )

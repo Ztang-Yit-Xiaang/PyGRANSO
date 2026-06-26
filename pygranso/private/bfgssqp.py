@@ -10,6 +10,7 @@ from pygranso.private import linesearchWeakWolfe as lWW
 from pygranso.private import pygransoConstants as pC
 from pygranso.private import regularizePosDefMatrix as rPDM
 from pygranso.private.neighborhoodCache import nC
+from pygranso.private.osqpWorkspace import TorchOSQPWorkspace
 from pygranso.private.qpSteeringStrategy import qpSS
 from pygranso.private.qpTerminationCondition import qpTC
 from pygranso.pygransoStruct import pygransoStruct
@@ -179,11 +180,11 @@ class AlgBFGSSQP:
         self.regularize_max_eigenvalues = opts.regularize_max_eigenvalues
 
         self.QPsolver = opts.QPsolver
+        self.osqp_workspace = TorchOSQPWorkspace()
         self.osqp_options = {
             "algebra": opts.osqp_algebra,
-            "cuda_fallback": opts.osqp_cuda_fallback,
-            "builtin_workspace_cache": opts.osqp_builtin_workspace_cache,
             "settings": opts.osqp_settings,
+            "workspace": self.osqp_workspace,
         }
 
         # experimental options
@@ -693,10 +694,14 @@ class AlgBFGSSQP:
                 self.double_precision,
                 self.osqp_options,
             )
-        except Exception:
+        except Exception as exc:
             print("PyGRANSO:terminationQuadprogFailure")
             print(traceback.format_exc())
-            [stat_vec, n_qps, ME] = [None, 1, None]  # set a very large stat vec
+            stat_vec = torch.full_like(
+                self.penaltyfn_at_x.f_grad,
+                float("inf"),
+            )
+            [n_qps, ME] = [0, [exc]]
 
         if self.stat_l2_model:
             stat_value = torch.linalg.vector_norm(stat_vec, ord=2).item()

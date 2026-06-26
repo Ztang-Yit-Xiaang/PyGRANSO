@@ -1,22 +1,16 @@
 import argparse
 import csv
-from pathlib import Path
 import statistics
 import time
+from pathlib import Path
 
 import numpy as np
 import torch
 
-from bench_osqp_runtime import bootstrap_speedup_interval, markdown_table
-from pygranso.private.osqpTorchAdapter import get_builtin_osqp_workspace_stats
-from pygranso.private.solveQP import (
-    beginOSQPTrace,
-    endOSQPTrace,
-    resetOSQPWarmState,
-)
+from bench_osqp_dense_reference import bootstrap_speedup_interval, markdown_table
+from pygranso.private.solveQP import beginOSQPTrace, endOSQPTrace
 from pygranso.pygranso import pygranso
 from pygranso.pygransoStruct import pygransoStruct
-
 
 WORKLOADS = ("B1", "B2", "B3")
 RESULT_COLUMNS = (
@@ -28,6 +22,8 @@ RESULT_COLUMNS = (
     "speedup_vs_cpu_warm",
     "speedup_ci_low",
     "speedup_ci_high",
+    "torch_slowdown",
+    "performance_gate",
     "termination_code",
     "objective",
     "feasibility",
@@ -49,13 +45,13 @@ def parse_args(argv=None):
     parser.add_argument("--warmups", type=int, default=2)
     parser.add_argument("--maxit", type=int, default=20)
     parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--qp-max-iter", type=int, default=15)
-    parser.add_argument("--cg-fixed-iters", type=int, default=1)
+    parser.add_argument("--qp-max-iter", type=int, default=4000)
     parser.add_argument("--eps-abs", type=float, default=1e-5)
     parser.add_argument("--eps-rel", type=float, default=1e-5)
-    parser.add_argument("--cuda-graph", action="store_true")
     parser.add_argument("--export-md", default=None)
     parser.add_argument("--export-csv", default=None)
+    parser.add_argument("--maximum-slowdown", type=float, default=5.0)
+    parser.add_argument("--enforce-gate", action="store_true")
     return parser.parse_args(argv)
 
 
@@ -123,7 +119,6 @@ def make_workload(name, device, seed, maxit, method, args):
 
     if method == "cpu_warm":
         opts.osqp_algebra = "builtin"
-        opts.osqp_builtin_workspace_cache = True
         opts.osqp_settings = {
             "eps_abs": args.eps_abs,
             "eps_rel": args.eps_rel,
@@ -133,18 +128,15 @@ def make_workload(name, device, seed, maxit, method, args):
     else:
         opts.osqp_algebra = "torch"
         opts.osqp_settings = {
-            "linear_solver": "sparse_cg",
             "max_iter": args.qp_max_iter,
-            "check_termination": args.qp_max_iter,
+            "check_termination": min(25, args.qp_max_iter),
             "eps_abs": args.eps_abs,
             "eps_rel": args.eps_rel,
-            "cg_fixed_iters": args.cg_fixed_iters,
-            "cg_check_interval": args.qp_max_iter,
             "warm_start": True,
-            "cuda_graph": bool(args.cuda_graph),
-            "adaptive_rho": False,
-            "scaling": 0,
-            "polishing": False,
+            "adaptive_rho": True,
+            "rho_update_interval": 50,
+            "scaling": 10,
+            "polishing": True,
             "verbose": False,
         }
     return var_spec, combined_fn, opts
@@ -152,7 +144,6 @@ def make_workload(name, device, seed, maxit, method, args):
 
 def run_workload(name, method, args):
     device = "cpu" if method == "cpu_warm" else "cuda"
-    resetOSQPWarmState()
     var_spec, combined_fn, opts = make_workload(
         name, device, args.seed, args.maxit, method, args
     )
@@ -177,7 +168,6 @@ def solution_metrics(solution):
 
 
 def trace_workload(name, args):
-    resetOSQPWarmState()
     var_spec, combined_fn, opts = make_workload(
         name, "cpu", args.seed, min(args.maxit, 5), "cpu_warm", args
     )
@@ -222,6 +212,7 @@ def benchmark(args):
     if not torch.cuda.is_available():
         raise SystemExit("CUDA is required for the real PyGRANSO comparison.")
     rows = []
+    gate_failed = False
     for workload in args.workloads:
         trace = trace_workload(workload, args)
         method_data = {}
@@ -244,12 +235,15 @@ def benchmark(args):
         cpu_median = statistics.median(cpu["timings"])
         cuda_median = statistics.median(cuda["timings"])
         equivalent = equivalent_metrics(cpu["metrics"], cuda["metrics"])
+        slowdown = cuda_median / cpu_median
+        passed = equivalent and slowdown <= args.maximum_slowdown
+        gate_failed |= not passed
         for method, data in method_data.items():
             timings = np.asarray(data["timings"], dtype=float)
             row = {
                 "method": "CPU OSQP update/warm"
                 if method == "cpu_warm"
-                else "Torch CUDA sparse-CG",
+                else "Torch CUDA dense LU",
                 "workload": workload,
                 "device": "cpu" if method == "cpu_warm" else "cuda",
                 "median_ms": float(np.median(timings)),
@@ -257,11 +251,16 @@ def benchmark(args):
                 "speedup_vs_cpu_warm": 1.0 if method == "cpu_warm" else cpu_median / cuda_median,
                 "speedup_ci_low": 1.0 if method == "cpu_warm" or ci is None else ci[0],
                 "speedup_ci_high": 1.0 if method == "cpu_warm" or ci is None else ci[1],
+                "torch_slowdown": 1.0 if method == "cpu_warm" else slowdown,
+                "performance_gate": (
+                    "baseline" if method == "cpu_warm" else "pass" if passed else "fail"
+                ),
                 "equivalent_to_cpu": True if method == "cpu_warm" else equivalent,
                 **data["metrics"],
                 **trace,
             }
             rows.append(row)
+    args.gate_failed = gate_failed
     return rows
 
 
@@ -283,8 +282,11 @@ def main(argv=None):
     args = parse_args(argv)
     rows = benchmark(args)
     print(markdown_table(rows, RESULT_COLUMNS))
-    print("CPU workspace:", get_builtin_osqp_workspace_stats())
     export_rows(rows, args)
+    if args.enforce_gate and args.gate_failed:
+        raise SystemExit(
+            "Torch CUDA exceeded the end-to-end correctness/performance gate."
+        )
 
 
 if __name__ == "__main__":

@@ -59,28 +59,40 @@ Set `opts.torch_device = torch.device("cuda")` when calling PyGRANSO to use the 
 ### OSQP backend options
 
 PyGRANSO uses OSQP for its internal quadprog-compatible QP subproblems. The
-`auto` policy tries a Torch GPU solve when CUDA is available, and otherwise
-uses builtin CPU OSQP. For modest PyGRANSO QPs, CPU OSQP may still be faster
-and lighter than a GPU solve.
+Torch route is a correctness-first dense reference implementation with a
+replaceable linear-solver boundary. It is not a sparse large-scale solver.
 
-- `opts.osqp_algebra = "auto"` uses CUDA Torch OSQP when CUDA is available;
-  otherwise it uses builtin CPU OSQP.
+- `opts.osqp_algebra = "auto"` follows `opts.torch_device`: CPU uses builtin
+  OSQP; a validated accelerator uses Torch inside the supported KKT and memory
+  envelope. Unsupported or unsuccessful Torch solves visibly fall back to
+  builtin OSQP and retain structured fallback diagnostics.
 - `opts.osqp_algebra = "builtin"` forces CPU OSQP.
-- `opts.osqp_algebra = "torch"` forces the Python Torch OSQP prototype on
-  `opts.torch_device`.
-- `opts.osqp_algebra = "cuda"` requests CUDA OSQP, which requires a compiled
-  Torch/CUDA interop backend and is not implemented in this adapter yet.
-- `opts.osqp_cuda_fallback = False` prevents accidental CPU OSQP fallback when
-  builtin OSQP is explicitly requested for CUDA tensors.
-- `opts.osqp_cuda_fallback = True` allows CPU OSQP fallback with an explicit
-  warning when CUDA QP interop is unavailable.
-- `opts.osqp_settings` may override OSQP setup settings. The default is
-  `{"eps_abs": 1e-12, "eps_rel": 1e-12, "polish": True, "verbose": False}`.
-  For the Torch prototype, `opts.osqp_settings["linear_solver"]` defaults to
-  `"auto"`, which chooses dense or experimental `"sparse_cg"` from the QP size
-  and sparsity. Users may still force `"dense"` or `"sparse_cg"`.
-  Explicit `"sparse_cg"` failures are reported directly; only automatic sparse
-  selection may retry dense when the dense KKT estimate is under the memory cap.
+- `opts.osqp_algebra = "torch"` explicitly requests the dense Torch reference
+  route on `opts.torch_device`. Above the validated `n + m <= 2400` KKT limit,
+  it warns and attempts the solve rather than silently changing backend.
+- `opts.osqp_settings` overrides common settings shared by builtin and Torch.
+  Defaults are dtype-aware (`1e-8` for float64 and `1e-5` for float32) and
+  enable 10-pass Ruiz scaling, deterministic adaptive rho, polishing, and
+  structurally compatible warm starts.
+
+Float64 is authoritative through estimated KKT conditioning around `1e8`.
+Float32 is a qualified route with a conservative conditioning envelope around
+`1e2`; harder float32 cases are retained as stress evidence rather than
+claimed support.
+
+Archived sparse-CG and CUDA Graph settings are recognized for one migration
+release but raise an actionable deprecation error. The research implementation
+is preserved on `archive/sparse-cg-cuda-graph`.
+
+Torch support is promoted backend-by-backend. CPU and CUDA require their own
+release gates. ROCm remains unclaimed until real-hardware CI is available. MPS
+is float32-only and remains unclaimed until reusable LU is validated on Apple
+hardware; float64 MPS auto requests return the builtin CPU float64 solution.
+
+The current local NVIDIA run passed the fixed-seed correctness buckets but
+failed the end-to-end promotion gate at 12.48x, 21.33x, and 43.46x builtin CPU
+runtime on representative B1/B2/B3 workloads, so CUDA remains unpromoted and
+`auto` falls back visibly to builtin OSQP.
 
 PyGRANSO does not differentiate through the OSQP QP solve; autograd is used to
 compute the objective and constraint gradients before QP construction.
@@ -89,6 +101,9 @@ compute the objective and constraint gradients before QP construction.
 
 - **CPU:** `python test_cpu.py`
 - **CUDA:** `python test_cuda.py`
+- **Torch OSQP core:** `python -m pytest tests -q`
+- **Stability evidence:** `python torch_osqp_stability.py --seeds 100`
+- **Dense reference benchmark:** `python bench_osqp_dense_reference.py`
 
 Then check the [example folder](./examples) or the [example section](https://ncvx.org/examples) on the documentation website to get started.
 
