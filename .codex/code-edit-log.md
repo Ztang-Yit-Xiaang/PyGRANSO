@@ -413,3 +413,61 @@ Entries record Codex-assisted work sessions, findings, validation, conclusions, 
 
 - Confirm no Git operation is active, clear the stale `.git/index.lock` if appropriate, provide or configure a real Git signing identity for the required signed archive tag, and run hosted Linux/Windows/macOS plus PyTorch-version and real-hardware backend gates before release promotion.
 
+## Torch-OSQP clean evidence regeneration
+
+- Status: completed
+- Start local time: 2026-06-27 10:11:44 -05:00
+- End local time: 2026-06-27 10:39:55 CDT-0500
+- Duration: Not recorded
+
+### Goal
+
+- Remove unrelated npm artifacts and regenerate final Torch-OSQP stability evidence from the clean feature commit while keeping generated artifacts local.
+
+### What changed
+
+- node_modules/: removed untracked headroom-ai dependency tree after user approval.
+- package.json: removed unrelated untracked npm manifest after user approval.
+- package-lock.json: removed unrelated untracked npm lockfile after user approval.
+- output/stability/windows-cpu-float64-final/: regenerated local final CPU float64 stability CSV, manifest, summary, and failure directory.
+- output/stability/windows-cpu-float32-final/: regenerated local final CPU float32 stability CSV, manifest, summary, and failure reproductions.
+- output/stability/nvidia-cuda-float64-final/: regenerated local final CUDA float64 stability CSV, manifest, summary, and failure directory.
+- output/stability/nvidia-cuda-float32-final/: regenerated local final CUDA float32 stability CSV, manifest, summary, and failure reproductions.
+- output/stability/torch_osqp_release_summary.md: updated provenance text to feature commit af052f4 and clean worktree.
+
+### What was found
+
+- The untracked npm artifacts were unrelated to Torch-OSQP and were the only visible worktree dirt before regeneration.
+- The first sandboxed deletion attempt was denied by Windows permissions; escalated deletion succeeded after resolving and verifying all targets under the PyGRANSO repo.
+- All regenerated final manifests now record git_commit af052f4bcf8e47e2b4c4cdd7654535c758534446, git_dirty=false, source_file_count=84, and source_tree_sha256=3ca16e2225a62e3c4eecf82b9ae3443d4c75745016b45c8c324fa2cf8cca33fe.
+- CUDA correctness remains locally passing inside the release-gate envelope, but existing performance evidence still keeps CUDA unpromoted.
+
+### Validation
+
+- python -B torch_osqp_stability.py --device cpu --dtype float64 --seeds 100 --stress-seeds 100 --time-limit-seconds 7200 --output output/stability/windows-cpu-float64-final: 300 cases, 0 numerical failures, 0 release-gate failures.
+- python -B torch_osqp_stability.py --device cpu --dtype float32 --seeds 100 --stress-seeds 100 --time-limit-seconds 7200 --output output/stability/windows-cpu-float32-final: 300 cases, 100 expected non-gating stress failures, 0 release-gate failures.
+- python -B torch_osqp_stability.py --device cuda --dtype float64 --seeds 100 --stress-seeds 100 --time-limit-seconds 7200 --output output/stability/nvidia-cuda-float64-final: 300 cases, 0 numerical failures, 0 release-gate failures.
+- python -B torch_osqp_stability.py --device cuda --dtype float32 --seeds 100 --stress-seeds 100 --time-limit-seconds 7200 --output output/stability/nvidia-cuda-float32-final: 300 cases, 100 expected non-gating stress failures, 0 release-gate failures.
+- python -B -m pytest -q: 71 passed; warnings limited to existing NumPy deprecation and cache-permission warnings.
+- python -B -m ruff check .: passed; warnings limited to removed UP038 ignore and ruff cache-permission warnings.
+- Manifest provenance check: all four final manifests match the current maintained source hash, feature commit af052f4, and git_dirty=false.
+- git status --short --branch and git diff --check before report append: branch clean against origin; npm artifacts absent.
+
+### Conclusion
+
+- The confirmed cleanup and clean-commit evidence regeneration are complete; generated artifacts remain local/ignored, and only the required code-edit log update is a tracked local change.
+
+### Next steps
+
+**Codex can proceed:**
+
+- If asked, stage and commit the code-edit log update or rerun/inspect additional release evidence.
+
+**Human reflection:**
+
+- The stability evidence is now cleaner for release review because manifests point to the feature commit instead of relying only on a source-tree hash from a dirty pre-commit state.
+
+### Human action
+
+- Configure a real Git signing identity and create the signed archive tag research-sparse-cg-cuda-graph-final at da142c1; run hosted CPU/PyTorch-version CI and real-hardware backend gates before release promotion.
+
