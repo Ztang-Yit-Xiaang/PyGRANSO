@@ -471,3 +471,58 @@ Entries record Codex-assisted work sessions, findings, validation, conclusions, 
 
 - Configure a real Git signing identity and create the signed archive tag research-sparse-cg-cuda-graph-final at da142c1; run hosted CPU/PyTorch-version CI and real-hardware backend gates before release promotion.
 
+## Torch-OSQP audit provenance refresh
+
+- Status: completed
+- Start local time: 2026-06-28 17:56:40 -05:00
+- End local time: 2026-06-28 18:23:14 CDT-0500
+- Duration: Not recorded
+
+### Goal
+
+- Refresh stale completion-audit provenance wording and regenerate final stability evidence from the clean updated docs commit.
+
+### What changed
+
+- docs/TORCH_OSQP_COMPLETION_AUDIT.md: updated audit date and replaced stale pre-feature-commit provenance wording with clean-feature-commit/source-hash wording.
+- output/stability/windows-cpu-float64-final/: regenerated local final CPU float64 stability evidence after the audit-doc change.
+- output/stability/windows-cpu-float32-final/: regenerated local final CPU float32 stability evidence after the audit-doc change.
+- output/stability/nvidia-cuda-float64-final/: regenerated local final CUDA float64 stability evidence after the audit-doc change.
+- output/stability/nvidia-cuda-float32-final/: regenerated local final CUDA float32 stability evidence after the audit-doc change.
+- output/stability/torch_osqp_release_summary.md: updated local ignored roll-up provenance to commit cdbad24 and source hash f7206b5a6c501ca1a58acfdd27686941b55e87977a2ada4db3186ee27e63e717.
+
+### What was found
+
+- The completion audit still claimed manifests identified a dirty source tree before a human-created feature commit; that was stale after the report and evidence regeneration commits.
+- Because docs/*.md are part of the maintained-source fingerprint, refreshing the audit doc required regenerating all final evidence buckets to keep manifest provenance exact.
+- All regenerated final manifests now record git_commit cdbad242fbc3649a4f9ba765d10ce63a02b7f71c, git_dirty=false, source_file_count=84, and source_tree_sha256=f7206b5a6c501ca1a58acfdd27686941b55e87977a2ada4db3186ee27e63e717.
+
+### Validation
+
+- python -B torch_osqp_stability.py --device cpu --dtype float64 --seeds 100 --stress-seeds 100 --time-limit-seconds 7200 --output output/stability/windows-cpu-float64-final: 300 cases, 0 numerical failures, 0 release-gate failures.
+- python -B torch_osqp_stability.py --device cpu --dtype float32 --seeds 100 --stress-seeds 100 --time-limit-seconds 7200 --output output/stability/windows-cpu-float32-final: 300 cases, 100 expected non-gating stress failures, 0 release-gate failures.
+- python -B torch_osqp_stability.py --device cuda --dtype float64 --seeds 100 --stress-seeds 100 --time-limit-seconds 7200 --output output/stability/nvidia-cuda-float64-final: 300 cases, 0 numerical failures, 0 release-gate failures.
+- python -B torch_osqp_stability.py --device cuda --dtype float32 --seeds 100 --stress-seeds 100 --time-limit-seconds 7200 --output output/stability/nvidia-cuda-float32-final: 300 cases, 100 expected non-gating stress failures, 0 release-gate failures.
+- python -B -m pytest -q: 71 passed; warnings limited to existing NumPy deprecation and cache-permission warnings.
+- python -B -m ruff check .: passed; warnings limited to removed UP038 ignore and ruff cache-permission warnings.
+- Manifest provenance check: all four final manifests match commit cdbad24, git_dirty=false, and current maintained-source hash f7206b5a6c501ca1a58acfdd27686941b55e87977a2ada4db3186ee27e63e717.
+- git diff --check: passed.
+
+### Conclusion
+
+- The tracked completion audit and local ignored evidence are now consistent with the clean updated docs commit; the implementation remains locally validated.
+
+### Next steps
+
+**Codex can proceed:**
+
+- If signing is configured, create the signed archive tag; if remote authorization is provided, push the local follow-up commits.
+
+**Human reflection:**
+
+- The evidence package is now easier to audit because the completion audit no longer describes an earlier dirty-worktree phase.
+
+### Human action
+
+- Configure a real Git signing identity and create signed tag research-sparse-cg-cuda-graph-final at da142c1; run hosted CPU/PyTorch-version CI and real-hardware backend gates before release promotion.
+
