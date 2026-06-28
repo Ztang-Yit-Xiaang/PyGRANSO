@@ -1,6 +1,6 @@
 # Torch-OSQP Completion Audit
 
-Date: 2026-06-24  
+Date: 2026-06-28  
 Scope: revised dense Torch reference pipeline and release gates
 
 This audit separates implemented behavior from local evidence and external
@@ -60,9 +60,10 @@ be unsupported by the requested numerical contract.
 
 Every stability bucket writes a case CSV, environment/settings/seed manifest,
 Markdown summary, and one serialized QP per failure. Provenance is captured
-before output creation so the dirty flag describes source state. The manifest
-also hashes the maintained source tree, allowing exact identification before a
-human creates the feature commit.
+before output creation so the dirty flag describes source state. The final
+local evidence was regenerated from a clean feature commit; each manifest also
+hashes the maintained source tree, so later report-only commits do not obscure
+which solver, test, workflow, script, and documentation contents were validated.
 
 ## Documentation and reporting
 
