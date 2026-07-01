@@ -295,6 +295,12 @@ also records status entries and a deterministic SHA-256 over maintained source,
 tests, workflows, scripts, and documentation, making dirty-worktree evidence
 exactly identifiable before a release commit exists.
 
+Stability reports estimate conditioning with a deterministic dense CPU KKT
+diagnostic using the initial common `rho` and `sigma` settings. The QP solves
+still execute on the requested backend, but the condition estimate itself does
+not call accelerator SVD/condition kernels; this keeps nightly and hardware
+evidence buckets inside the two-hour gate.
+
 Differential tests use identical algorithm settings. They compare status,
 primal and dual residuals, objective, equality violation, bound violation, and
 finite values. Objective gaps use `abs(torch-reference) / max(1, abs(reference))`.

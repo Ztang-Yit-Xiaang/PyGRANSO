@@ -136,19 +136,61 @@ def solve(problem, algebra, settings):
     )
 
 
+def estimate_initial_kkt_condition(problem, dtype):
+    """Estimate KKT conditioning on CPU without exercising a backend solver."""
+
+    H, f, A, b, lower, upper = problem
+    del f, b
+    P = H.detach().cpu().to(dtype=torch.float64)
+    n = int(P.shape[0])
+    identity = torch.eye(n, dtype=torch.float64)
+    lower_cpu = lower.detach().cpu().reshape(-1).to(dtype=torch.float64)
+    upper_cpu = upper.detach().cpu().reshape(-1).to(dtype=torch.float64)
+    if A is None:
+        A_osqp = identity
+        l_osqp = lower_cpu
+        u_osqp = upper_cpu
+    else:
+        equality = A.detach().cpu().to(dtype=torch.float64)
+        if equality.ndim == 1:
+            equality = equality.reshape(1, -1)
+        A_osqp = torch.cat((equality, identity), dim=0)
+        rhs = torch.zeros(equality.shape[0], dtype=torch.float64)
+        l_osqp = torch.cat((rhs, lower_cpu))
+        u_osqp = torch.cat((rhs, upper_cpu))
+    equality_mask = torch.isfinite(l_osqp) & torch.isfinite(u_osqp) & torch.isclose(
+        l_osqp,
+        u_osqp,
+        rtol=100.0 * torch.finfo(torch.float64).eps,
+        atol=100.0 * torch.finfo(torch.float64).eps,
+    )
+    rho_vec = torch.full((A_osqp.shape[0],), 0.1, dtype=torch.float64)
+    rho_vec[equality_mask] *= 1000.0
+    top = torch.cat((P + 1e-6 * identity, A_osqp.T), dim=1)
+    bottom = torch.cat((A_osqp, -torch.diag(rho_vec.reciprocal())), dim=1)
+    K = torch.cat((top, bottom), dim=0)
+    try:
+        value = torch.linalg.cond(K).item()
+    except RuntimeError:
+        return math.inf
+    if not math.isfinite(value):
+        return math.inf
+    return float(value)
+
+
 def evaluate(family, seed, device, dtype):
     family, problem, condition = make_problem(family, seed, device, dtype)
     H, _f, A, b, lower, upper = problem
+    condition = estimate_initial_kkt_condition(problem, dtype)
     settings = {
         "return_info": True,
         "check_linear_residual": True,
-        "check_condition": True,
+        "check_condition": False,
         "eps_abs": 1e-8 if dtype == torch.float64 else 1e-5,
         "eps_rel": 1e-8 if dtype == torch.float64 else 1e-5,
     }
     torch_x, torch_info = solve(problem, "torch", settings)
     builtin_x, builtin_info = solve(problem, "builtin", settings)
-    condition = torch_info.get("estimated_kkt_condition", condition)
     objective_scale = max(1.0, abs(builtin_info["objective"]))
     objective_gap = abs(torch_info["objective"] - builtin_info["objective"]) / objective_scale
     bounds = torch.maximum(
@@ -283,6 +325,7 @@ def environment_manifest(args):
         "time_limit_seconds": args.time_limit_seconds,
         "supported_condition_limit": 1e8 if args.dtype == "float64" else 1e2,
         "stress_condition_limit": 1e10,
+        "condition_estimate_method": "cpu_dense_initial_kkt",
         "kkt_dimension_limit": 2400,
         "settings": {
             "rho": 0.1,
