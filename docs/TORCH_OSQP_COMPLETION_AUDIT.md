@@ -1,6 +1,6 @@
 # Torch-OSQP Completion Audit
 
-Date: 2026-06-28  
+Date: 2026-07-01  
 Scope: revised dense Torch reference pipeline and release gates
 
 This audit separates implemented behavior from local evidence and external
@@ -12,7 +12,7 @@ has produced evidence.
 | Requirement | Authoritative evidence | Status |
 | --- | --- | --- |
 | Preserve research snapshot | Branch `archive/sparse-cg-cuda-graph`, commit `da142c1`, baseline 79-test result in the edit log | Implemented |
-| Signed archive tag | No configured Git signing key and no secret GPG/SSH key on this host | Pending human signing identity |
+| Signed archive tag | Tag `research-sparse-cg-cuda-graph-final` verifies as a PGP-signed tag at `da142c1` with key `913CC0E29352B362D9116C59387554B041B0ACDD`; `origin` has tag object `d40a6e0` | Implemented and pushed to origin |
 | Remove research execution from active path | Legacy benchmark, presentation, old adapter test, custom CG, sparse operator, and CUDA Graph code absent from the feature branch; archive branch retains them | Implemented |
 | Dense private LU lifecycle | `torchLinearSolve.py` uses `lu_factor_ex`, `lu_solve`, finite/status checks, RHS normalization, reuse, and optional diagnostics | Implemented and unit tested |
 | Per-run state | `TorchOSQPWorkspace` is created by each `AlgBFGSSQP` and owns Torch/builtin state, signatures, scaling, factors, and diagnostics | Implemented and unit tested |
@@ -52,10 +52,10 @@ be unsupported by the requested numerical contract.
 | NVIDIA CUDA float64 | 300 rows; 175 condition-qualified release-gate passes and 125 non-gating stress passes | Correctness passing locally |
 | NVIDIA CUDA qualified float32 | 300 rows; 200 condition-qualified release-gate passes and 100 non-gating stress failures | Correctness passing locally |
 | NVIDIA CUDA performance | B1/B2/B3 end-to-end medians 12.48x, 21.33x, and 43.46x builtin CPU | Failed; backend unpromoted |
-| Linux/Windows/macOS CPU matrix | `torch-osqp-core.yml` | Configured; external runs pending |
-| PyTorch 2.8 and current stable | Core workflow matrix, including Python 3.10-3.13 endpoints | Configured; external runs pending |
-| Nightly 100-seed platform buckets | `torch-osqp-nightly.yml` | Configured; external runs pending |
-| CUDA real-hardware promotion | Manual self-hosted correctness, stress, and 5x workflow | Configured; expected to remain failed until performance improves |
+| Linux/Windows/macOS CPU matrix | GitHub Actions run `28492270655` on branch `feature/torch-osqp-dense-reference` | Passing on origin fork |
+| PyTorch 2.8 and current stable | Core workflow run `28492270655`, including Python 3.10-3.13 endpoints | Passing on origin fork |
+| Nightly 100-seed platform buckets | `torch-osqp-nightly.yml` exists on the feature branch, but GitHub cannot dispatch it until the workflow exists on the default branch | Configured; activation pending merge/default-branch registration |
+| CUDA real-hardware promotion | Manual self-hosted correctness, stress, and 5x workflow exists on the feature branch; local NVIDIA correctness buckets pass, but 5x performance gate fails | Configured; CUDA remains unpromoted |
 | ROCm and Apple MPS | No real runner | Unclaimed by design |
 
 Every stability bucket writes a case CSV, environment/settings/seed manifest,
@@ -76,9 +76,9 @@ which solver, test, workflow, script, and documentation contents were validated.
 
 ## Remaining release actions
 
-1. Run the configured hosted Linux/Windows/macOS and PyTorch-version workflows.
-2. Configure a real signing identity and create signed tag
-   `research-sparse-cg-cuda-graph-final` at `da142c1`.
+1. Open or update the release PR from `feature/torch-osqp-dense-reference`.
+2. Merge/register the feature-branch-only nightly and CUDA workflows before
+   relying on workflow dispatch or schedules for those gates.
 3. Keep CUDA unpromoted until its representative end-to-end median is no worse
    than 5x builtin CPU OSQP.
 4. Obtain ROCm and MPS runners before making either support claim.
