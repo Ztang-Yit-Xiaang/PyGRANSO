@@ -74,6 +74,7 @@ def styles():
         sheet.add(ParagraphStyle(name=f"Heading{level}Custom", parent=sheet[f"Heading{level}"], fontName="Helvetica-Bold", fontSize=size, leading=size + 4, textColor=navy if level == 1 else blue, spaceBefore=before, spaceAfter=after, keepWithNext=True))
     sheet.add(ParagraphStyle(name="Subheading", parent=sheet["Heading4"], fontName="Helvetica-Bold", fontSize=10, leading=13, textColor=blue, spaceBefore=8, spaceAfter=4, keepWithNext=True))
     sheet.add(ParagraphStyle(name="BodyCustom", parent=sheet["BodyText"], fontSize=9.4, leading=13.2, textColor=colors.HexColor("#25313D"), spaceAfter=6))
+    sheet.add(ParagraphStyle(name="TableHeaderCustom", parent=sheet["BodyText"], fontName="Helvetica-Bold", fontSize=9.0, leading=12.5, textColor=colors.white, spaceAfter=0))
     sheet.add(ParagraphStyle(name="BulletCustom", parent=sheet["BodyText"], fontSize=9.2, leading=12.8, leftIndent=4, textColor=colors.HexColor("#25313D")))
     sheet.add(ParagraphStyle(name="CodeCustom", fontName="Courier", fontSize=7.6, leading=10, leftIndent=8, rightIndent=8, borderColor=colors.HexColor("#C8D3DF"), borderWidth=0.6, borderPadding=8, backColor=colors.HexColor("#F4F7FA"), spaceBefore=4, spaceAfter=8))
     return sheet
@@ -89,7 +90,16 @@ def inline_markup(text):
 def parse_table(lines, sheet):
     rows = [[inline_markup(cell) for cell in line.strip().strip("|").split("|")] for line in lines]
     rows = [rows[0]] + rows[2:]
-    data = [[Paragraph(cell, sheet["BodyCustom"]) for cell in row] for row in rows]
+    data = [
+        [
+            Paragraph(
+                cell,
+                sheet["TableHeaderCustom"] if row_index == 0 else sheet["BodyCustom"],
+            )
+            for cell in row
+        ]
+        for row_index, row in enumerate(rows)
+    ]
     table = Table(data, repeatRows=1, hAlign="LEFT", colWidths=[None] * len(data[0]))
     table.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#173A5E")),
