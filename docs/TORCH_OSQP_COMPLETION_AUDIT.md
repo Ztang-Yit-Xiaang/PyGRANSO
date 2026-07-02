@@ -47,23 +47,25 @@ be unsupported by the requested numerical contract.
 | Gate | Evidence | Status |
 | --- | --- | --- |
 | Deterministic/unit/differential/metamorphic/PyGRANSO | Local pytest suite | Passing locally |
-| Windows CPU float64 | 300 rows; 175 condition-qualified release-gate passes and 125 non-gating stress passes | Passing locally |
-| Windows CPU qualified float32 | 300 rows; 199 condition-qualified release-gate passes and 100 non-gating stress failures | Passing locally |
-| NVIDIA CUDA float64 | 300 rows; 175 condition-qualified release-gate passes and 125 non-gating stress passes | Correctness passing locally |
-| NVIDIA CUDA qualified float32 | 300 rows; 200 condition-qualified release-gate passes and 100 non-gating stress failures | Correctness passing locally |
+| Windows CPU float64 | Current exact-source evidence at `5544bfe`: 300 rows; 200 condition-qualified release-gate passes and 100 non-gating stress passes | Passing locally |
+| Windows CPU qualified float32 | Current exact-source evidence at `5544bfe`: 300 rows; 199 condition-qualified release-gate passes and 101 non-gating rows, including 100 expected stress failures | Passing locally |
+| NVIDIA CUDA float64 | Earlier 300-row correctness evidence passed at `02e24fb`; current exact-source smoke at `5544bfe` passed 2 rows, but 100-seed local GTX 1650 reruns exceeded the two-hour wrapper | Unpromoted; full current CUDA gate requires representative hardware |
+| NVIDIA CUDA qualified float32 | Earlier supported-family correctness evidence passed 200 rows at `02e24fb`; full stress remained non-gating/unpromoted | Unpromoted; representative promotion gate still required |
 | NVIDIA CUDA performance | B1/B2/B3 end-to-end medians 12.48x, 21.33x, and 43.46x builtin CPU | Failed; backend unpromoted |
-| Linux/Windows/macOS CPU matrix | GitHub Actions run `28492270655` on branch `feature/torch-osqp-dense-reference` | Passing on origin fork |
-| PyTorch 2.8 and current stable | Core workflow run `28492270655`, including Python 3.10-3.13 endpoints | Passing on origin fork |
+| Linux/Windows/macOS CPU matrix | GitHub Actions run `28557162633` on branch `feature/torch-osqp-dense-reference` | Passing on origin fork |
+| PyTorch 2.8 and current stable | Core workflow run `28557162633`, including Python 3.10-3.13 endpoints | Passing on origin fork |
 | Nightly 100-seed platform buckets | `torch-osqp-nightly.yml` exists on the feature branch, but GitHub cannot dispatch it until the workflow exists on the default branch | Configured; activation pending merge/default-branch registration |
-| CUDA real-hardware promotion | Manual self-hosted correctness, stress, and 5x workflow exists on the feature branch; local NVIDIA correctness buckets pass, but 5x performance gate fails | Configured; CUDA remains unpromoted |
+| CUDA real-hardware promotion | Manual self-hosted correctness, stress, and 5x workflow exists on the feature branch; local GTX 1650 evidence is insufficient for promotion and 5x performance gate fails | Configured; CUDA remains unpromoted |
 | ROCm and Apple MPS | No real runner | Unclaimed by design |
 
 Every stability bucket writes a case CSV, environment/settings/seed manifest,
 Markdown summary, and one serialized QP per failure. Provenance is captured
-before output creation so the dirty flag describes source state. The final
-local evidence was regenerated from a clean feature commit; each manifest also
-hashes the maintained source tree, so later report-only commits do not obscure
-which solver, test, workflow, script, and documentation contents were validated.
+before output creation so the dirty flag describes source state. The current
+CPU evidence and timeout smoke were regenerated from clean commit `5544bfe`
+with maintained-source hash
+`76ee5c6b24ed3db425e0f6c4c5aad4525c8bfe79f8660de53381a317af2a379a`.
+Earlier CUDA correctness evidence remains useful regression evidence, but CUDA
+is not promoted until representative current-source hardware gates pass.
 Time-limit exits now write the same artifact set for completed cases, mark the
 manifest as `timed_out` and `partial_results`, record the last completed case,
 and exit nonzero so a bucket can fail without losing local telemetry.

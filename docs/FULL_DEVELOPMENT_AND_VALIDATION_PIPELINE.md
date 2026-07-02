@@ -41,7 +41,7 @@ counts across devices or backends.
 | Torch CPU on Linux | float32/float64 | Release-gated | Core, nightly, end-to-end |
 | Torch CPU on Windows | float32/float64 | Local correctness pass; release-gated | Cross-version CI still required |
 | Torch CPU on macOS | float32/float64 | Release-gated | Core, nightly, end-to-end |
-| NVIDIA CUDA | float32/float64 | Unpromoted | Correctness passed locally; 12.48x, 21.33x, and 43.46x end-to-end slowdowns failed the <=5x gate |
+| NVIDIA CUDA | float32/float64 | Unpromoted | Earlier local correctness evidence passed, but current-source full CUDA reruns on the GTX 1650 exceeded the two-hour local wrapper and 12.48x, 21.33x, and 43.46x end-to-end slowdowns failed the <=5x gate |
 | AMD ROCm | float32/float64 | Unclaimed | Real-hardware runner required |
 | Apple MPS | float32 only | Unclaimed | Reusable LU must pass on real Apple hardware |
 | Apple MPS float64 | Unsupported | Builtin CPU result under auto | MPS does not support float64 tensors |
@@ -320,10 +320,13 @@ Torch median end-to-end time, including necessary transfers, must be no worse
 than five times builtin CPU OSQP. A backend that fails remains explicit or
 unclaimed even when its correctness suite passes.
 
-Current local NVIDIA evidence passes the fixed-seed correctness buckets but
-fails automatic promotion: B1, B2, and B3 measured 12.48x, 21.33x, and 43.46x
-the builtin CPU median respectively. CUDA therefore remains explicit-only and
-`auto` records a warned `cuda_not_promoted` builtin fallback.
+Current CUDA promotion evidence is intentionally insufficient. Earlier local
+NVIDIA correctness buckets passed, and a current-source CUDA float64 smoke
+passes, but current-source 100-seed CUDA float64 reruns on the local GTX 1650
+exceeded the two-hour wrapper. Independent end-to-end B1, B2, and B3 medians
+were 12.48x, 21.33x, and 43.46x the builtin CPU median respectively. CUDA
+therefore remains explicit-only and `auto` records a warned
+`cuda_not_promoted` builtin fallback.
 
 ### 18. Migration sequence
 
