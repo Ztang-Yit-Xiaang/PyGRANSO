@@ -783,3 +783,58 @@ Entries record Codex-assisted work sessions, findings, validation, conclusions, 
 - Decide whether to mark the draft PR ready for review or merge it to main to register nightly/CUDA workflows.
 - Provide representative CUDA/ROCm/MPS hardware if automatic accelerator promotion claims are desired.
 
+## Torch-OSQP ruff config cleanup
+
+- Status: completed
+- Start local time: 2026-07-02 01:40:00 CDT-0500
+- End local time: 2026-07-02 02:06:39 Central Daylight Time-0500
+- Duration: approximately 26m
+
+### Goal
+
+- Remove the obsolete ruff ignore warning, revalidate focused solver/reporting paths, and refresh local exact-source evidence.
+
+### What changed
+
+- pyproject.toml: removed obsolete UP038 from the ruff ignore list so ruff no longer emits a removed-rule warning.
+- output/stability/windows-cpu-float64-final/: regenerated local ignored exact-source CPU float64 evidence at 16bf5cf.
+- output/stability/windows-cpu-float32-final/: regenerated local ignored exact-source CPU float32 evidence at 16bf5cf.
+- output/stability/cpu-timeout-partial-smoke/: regenerated local ignored timeout smoke evidence at 16bf5cf.
+- output/stability/nvidia-cuda-float64-smoke-after-timeout/: regenerated local ignored CUDA float64 smoke evidence at 16bf5cf.
+- output/stability/torch_osqp_release_summary.md: refreshed ignored local roll-up summary with 16bf5cf manifest provenance.
+
+### What was found
+
+- The only ruff issue after broad validation was a configuration warning for removed rule UP038; removing it made ruff output clean.
+- Because pyproject.toml is included in the maintained-source fingerprint, local evidence was regenerated after the config cleanup commit.
+- All refreshed local manifests agree on clean commit 16bf5cf36d5d84aeafa0c62c6a2eb390c7722d59 and source hash c8127898905e30326dde531f637fcfa3bd84fafd3f0bf23894820f3db6cf1902.
+
+### Validation
+
+- python -B -m ruff check .: passed with no removed-rule warning.
+- python -B -m pytest tests/test_stability_reporting.py tests/test_torch_linear_solve.py tests/test_torch_osqp_policy.py -q: 28 passed.
+- python -B torch_osqp_stability.py --device cpu --dtype float64 --seeds 100 --stress-seeds 100 --time-limit-seconds 7200 --output output/stability/windows-cpu-float64-final: 300/300, 0 release-gate failures, 132.75s.
+- python -B torch_osqp_stability.py --device cpu --dtype float32 --seeds 100 --stress-seeds 100 --time-limit-seconds 7200 --output output/stability/windows-cpu-float32-final: 300 completed, 100 expected non-gating stress failures, 0 release-gate failures, 1125.56s.
+- python -B torch_osqp_stability.py --device cpu --dtype float64 --seeds 1 --stress-seeds 1 --time-limit-seconds 0.01 --output output/stability/cpu-timeout-partial-smoke: exited 1 as expected after writing partial artifacts for 1/3 cases.
+- python -B torch_osqp_stability.py --device cuda --dtype float64 --seeds 1 --stress-seeds 0 --time-limit-seconds 600 --output output/stability/nvidia-cuda-float64-smoke-after-timeout: 2/2, 0 release-gate failures, 10.91s.
+- git diff --check: passed.
+
+### Conclusion
+
+- The validation configuration is cleaner, focused tests and ruff are green, and exact-source local evidence is refreshed at 16bf5cf.
+
+### Next steps
+
+**Codex can proceed:**
+
+- Update the draft PR body/check status after this report commit, then stop unless the user wants PR readiness/merge or accelerator hardware work.
+
+**Human reflection:**
+
+- This was a small cleanup, but it removed noise from the release-validation story; future ruff output is easier to interpret.
+
+### Human action
+
+- Decide whether to keep the PR draft, mark it ready, or merge it to main for workflow registration.
+- Provide representative accelerator runners before claiming CUDA/ROCm/MPS promotion.
+
