@@ -64,6 +64,9 @@ before output creation so the dirty flag describes source state. The final
 local evidence was regenerated from a clean feature commit; each manifest also
 hashes the maintained source tree, so later report-only commits do not obscure
 which solver, test, workflow, script, and documentation contents were validated.
+Time-limit exits now write the same artifact set for completed cases, mark the
+manifest as `timed_out` and `partial_results`, record the last completed case,
+and exit nonzero so a bucket can fail without losing local telemetry.
 Conditioning is estimated by a deterministic dense CPU KKT diagnostic with the
 common initial `rho` and `sigma`; backend solves still run on the requested
 device, but the evidence gate does not spend accelerator time on diagnostic SVD

@@ -340,13 +340,16 @@ def environment_manifest(args):
 
 def write_summary(path, rows, manifest):
     families = sorted({row["test_family"] for row in rows})
+    completed_cases = manifest.get("completed_cases", len(rows))
+    planned_cases = manifest.get("planned_cases", len(rows))
     lines = [
         "# Torch OSQP Stability Summary",
         "",
         f"- Git commit: `{manifest['git_commit']}`",
         f"- Device: `{manifest['device']}`",
         f"- Dtype: `{manifest['dtype']}`",
-        f"- Cases: {len(rows)}",
+        f"- Cases: {completed_cases}/{planned_cases}",
+        f"- Timed out: {manifest.get('timed_out', False)}",
         f"- Passed: {sum(row['overall_status'] == 'passed' for row in rows)}",
         f"- Failed: {sum(row['overall_status'] == 'failed' for row in rows)}",
         f"- Release-gate failures: {sum(row['release_gate'] == 'failed' for row in rows)}",
@@ -359,6 +362,34 @@ def write_summary(path, rows, manifest):
         passed = sum(row["overall_status"] == "passed" for row in family_rows)
         lines.append(f"| {family} | {len(family_rows)} | {passed} | {len(family_rows)-passed} |")
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def write_artifacts(output, rows, manifest, started, planned_cases, timed_out):
+    """Write CSV, manifest, and summary for complete or partial stability runs."""
+
+    manifest["elapsed_seconds"] = elapsed = time.perf_counter() - started
+    manifest["completed_cases"] = len(rows)
+    manifest["planned_cases"] = planned_cases
+    manifest["timed_out"] = bool(timed_out)
+    manifest["partial_results"] = bool(timed_out or len(rows) < planned_cases)
+    with (output / "torch_osqp_stability_results.csv").open(
+        "w", newline="", encoding="utf-8"
+    ) as handle:
+        writer = csv.DictWriter(handle, fieldnames=CSV_COLUMNS)
+        writer.writeheader()
+        writer.writerows(rows)
+    (output / "torch_osqp_stability_manifest.json").write_text(
+        json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
+    )
+    write_summary(output / "torch_osqp_stability_summary.md", rows, manifest)
+    failures = [row for row in rows if row["release_gate"] == "failed"]
+    observations = [row for row in rows if row["overall_status"] == "failed"]
+    print(
+        f"Stability cases: {len(rows)}/{planned_cases}, "
+        f"numerical failures: {len(observations)}, "
+        f"release-gate failures: {len(failures)}, elapsed: {elapsed:.2f}s"
+    )
+    return elapsed, failures
 
 
 def run(args):
@@ -379,6 +410,7 @@ def run(args):
         for seed in range(args.seeds)
     ]
     cases.extend((STRESS_FAMILY, seed) for seed in range(args.stress_seeds))
+    planned_cases = len(cases)
     for family, seed in cases:
         try:
             row, problem = evaluate(family, seed, device, dtype)
@@ -416,22 +448,32 @@ def run(args):
                 },
                 reproduction / f"{family}_seed_{seed}.pt",
             )
-    with (output / "torch_osqp_stability_results.csv").open(
-        "w", newline="", encoding="utf-8"
-    ) as handle:
-        writer = csv.DictWriter(handle, fieldnames=CSV_COLUMNS)
-        writer.writeheader()
-        writer.writerows(rows)
-    manifest["elapsed_seconds"] = elapsed = time.perf_counter() - started
-    (output / "torch_osqp_stability_manifest.json").write_text(
-        json.dumps(manifest, indent=2) + "\n", encoding="utf-8"
-    )
-    write_summary(output / "torch_osqp_stability_summary.md", rows, manifest)
-    failures = [row for row in rows if row["release_gate"] == "failed"]
-    observations = [row for row in rows if row["overall_status"] == "failed"]
-    print(
-        f"Stability cases: {len(rows)}, numerical failures: {len(observations)}, "
-        f"release-gate failures: {len(failures)}, elapsed: {elapsed:.2f}s"
+        elapsed = time.perf_counter() - started
+        if elapsed > args.time_limit_seconds:
+            manifest["timeout_after_case"] = {
+                "completed_cases": len(rows),
+                "test_family": family,
+                "seed": seed,
+            }
+            elapsed, _failures = write_artifacts(
+                output,
+                rows,
+                manifest,
+                started,
+                planned_cases,
+                timed_out=True,
+            )
+            raise SystemExit(
+                f"Stability bucket exceeded {args.time_limit_seconds}s after "
+                f"{len(rows)}/{planned_cases} cases: {elapsed:.2f}s."
+            )
+    elapsed, failures = write_artifacts(
+        output,
+        rows,
+        manifest,
+        started,
+        planned_cases,
+        timed_out=False,
     )
     if elapsed > args.time_limit_seconds:
         raise SystemExit(

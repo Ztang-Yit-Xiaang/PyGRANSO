@@ -289,6 +289,13 @@ Each stability run produces:
 - `torch_osqp_stability_summary.md` with family totals;
 - one serialized reproduction file for every failure.
 
+If the wall-clock budget is exceeded after a case completes, the run still
+writes the CSV, manifest, summary, and any failure reproductions collected so
+far, marks `timed_out=true` and `partial_results=true` in the manifest, records
+the last completed case, and exits nonzero. A timed-out bucket is not passing
+release evidence, but it remains reproducible telemetry instead of a silent
+artifact loss.
+
 The manifest captures Git provenance before creating its own output directory,
 so `git_dirty` describes source state rather than generated evidence files. It
 also records status entries and a deterministic SHA-256 over maintained source,
