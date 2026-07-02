@@ -592,3 +592,69 @@ Entries record Codex-assisted work sessions, findings, validation, conclusions, 
 - Merge/register the feature-branch workflows on the default branch before relying on scheduled or manual workflow_dispatch nightly/CUDA gates.
 - Provide real ROCm and MPS runners before claiming those backends.
 
+## Torch-OSQP partial evidence timeout reporting
+
+- Status: completed
+- Start local time: 2026-07-01 19:27:58 CDT-0500
+- End local time: 2026-07-02 00:30:21 Central Daylight Time-0500
+- Duration: approximately 5h 2m
+
+### Goal
+
+- Make stability evidence robust to time-limit exits, validate the new behavior, and refresh exact-source CPU evidence while keeping CUDA unpromoted.
+
+### What changed
+
+- torch_osqp_stability.py: added shared artifact writing for complete and partial runs; manifests now record completed_cases, planned_cases, timed_out, partial_results, and timeout_after_case when the internal time budget is exceeded.
+- tests/test_stability_reporting.py: added a deterministic monkeypatched timeout test proving partial CSV, manifest, and summary artifacts are written before nonzero exit.
+- docs/FULL_DEVELOPMENT_AND_VALIDATION_PIPELINE.md: documented partial timeout artifact semantics and clarified CUDA remains unpromoted when current-source gates are insufficient.
+- docs/TORCH_OSQP_COMPLETION_AUDIT.md: updated CPU evidence, hosted CI run, timeout reporting, and CUDA promotion boundary status.
+- output/stability/windows-cpu-float64-final/: regenerated local ignored exact-source CPU float64 evidence at e010733.
+- output/stability/windows-cpu-float32-final/: regenerated local ignored exact-source CPU float32 evidence at e010733.
+- output/stability/cpu-timeout-partial-smoke/: generated local ignored partial-timeout smoke artifact at e010733.
+- output/stability/nvidia-cuda-float64-smoke-after-timeout/: generated local ignored CUDA float64 smoke artifact at e010733.
+- output/stability/torch_osqp_release_summary.md: refreshed ignored local roll-up summary with e010733 evidence and CUDA timeout boundary.
+
+### What was found
+
+- The previous CUDA float32 timeout exposed a reporting gap: if a bucket missed the time gate, evidence could be lost unless the process reached normal finalization.
+- The new timeout path writes CSV, manifest, and summary after a completed case exceeds the internal budget, then exits nonzero; this fixes between-case timeout telemetry but cannot save a process killed inside a single long-running case by an external wrapper.
+- Clean exact-source CPU evidence at e010733 passed: float64 300/300 with zero release-gate failures in 121.95s; float32 300/300 completed with 100 expected non-gating stress failures and zero release-gate failures in 916.55s.
+- The clean timeout smoke at e010733 exited 1 as intended and wrote one completed row out of three planned with timed_out=true, partial_results=true, and git_dirty=false.
+- The clean CUDA float64 smoke at e010733 passed 2/2 rows in 7.48s, but larger current-source CUDA float64 reruns on the local GTX 1650 exceeded the two-hour external wrapper; CUDA remains unpromoted.
+- Hosted Torch OSQP core workflow run 28566854071 passed all seven Linux, Windows, and macOS CPU jobs for e010733.
+
+### Validation
+
+- python -B -m pytest tests/test_stability_reporting.py -q: 3 passed.
+- python -B -m ruff check torch_osqp_stability.py tests/test_stability_reporting.py docs/TORCH_OSQP_COMPLETION_AUDIT.md docs/FULL_DEVELOPMENT_AND_VALIDATION_PIPELINE.md: passed, with only the existing removed-rule warning.
+- git diff --check: passed.
+- GitHub Actions Torch OSQP core run 28566854071 at e010733: success across seven jobs.
+- python -B torch_osqp_stability.py --device cpu --dtype float64 --seeds 100 --stress-seeds 100 --time-limit-seconds 7200 --output output/stability/windows-cpu-float64-final: 300/300, 0 release-gate failures, 121.95s.
+- python -B torch_osqp_stability.py --device cpu --dtype float32 --seeds 100 --stress-seeds 100 --time-limit-seconds 7200 --output output/stability/windows-cpu-float32-final: 300/300 completed, 100 expected non-gating stress failures, 0 release-gate failures, 916.55s.
+- python -B torch_osqp_stability.py --device cpu --dtype float64 --seeds 1 --stress-seeds 1 --time-limit-seconds 0.01 --output output/stability/cpu-timeout-partial-smoke: exited 1 after writing partial artifacts for 1/3 cases with timed_out=true.
+- python -B torch_osqp_stability.py --device cuda --dtype float64 --seeds 1 --stress-seeds 0 --time-limit-seconds 600 --output output/stability/nvidia-cuda-float64-smoke-after-timeout: 2/2, 0 release-gate failures, 7.48s.
+- CUDA float64 100-seed current-source full/qualified attempts on the local GTX 1650 exceeded the two-hour external wrapper and were stopped; no promotion claim was made from those attempts.
+
+### Conclusion
+
+- Partial timeout reporting is implemented, tested, documented, and pushed; exact-source CPU release evidence is refreshed at e010733; CUDA remains explicit/unpromoted pending representative hardware gates.
+
+### Next steps
+
+**Codex can proceed:**
+
+- If desired, add an OS-level watchdog/progress flushing mode so external wrapper kills inside one long CUDA case still preserve a heartbeat or in-progress case marker.
+- Open or update the release PR and, after workflows are merged to the default branch, run the nightly and CUDA promotion workflows there.
+
+**Human reflection:**
+
+- The CPU path is now well-supported by exact-source evidence; CUDA correctness has useful smokes and earlier regression evidence, but the local GTX 1650 is not representative enough to justify a stronger claim.
+- The two-hour gate should be interpreted per backend bucket on representative hardware; local laptop/desktop CUDA timeouts are evidence against promotion, not evidence against CPU release readiness.
+
+### Human action
+
+- Review and accept the CUDA support boundary before release: CPU promoted/release-gated, CUDA explicit and unpromoted, ROCm/MPS unclaimed.
+- Provide or designate representative CUDA/ROCm/MPS runners if stronger accelerator support claims are desired.
+- Merge/register nightly and CUDA workflows on the default branch before relying on scheduled or manual dispatch gates.
+
