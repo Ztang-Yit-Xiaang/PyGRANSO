@@ -658,3 +658,66 @@ Entries record Codex-assisted work sessions, findings, validation, conclusions, 
 - Provide or designate representative CUDA/ROCm/MPS runners if stronger accelerator support claims are desired.
 - Merge/register nightly and CUDA workflows on the default branch before relying on scheduled or manual dispatch gates.
 
+## Torch-OSQP pipeline PDF regeneration
+
+- Status: completed
+- Start local time: 2026-07-02 00:38:06 CDT-0500
+- End local time: 2026-07-02 01:03:33 Central Daylight Time-0500
+- Duration: approximately 25m
+
+### Goal
+
+- Regenerate and visually validate the revised pipeline PDF from the current specification, fixing any rendered layout defects found.
+
+### What changed
+
+- scripts/render_pipeline_pdf.py: added a white bold table-header paragraph style so embedded ReportLab Paragraph cells render legibly on navy table headers.
+- docs/TORCH_OSQP_COMPLETION_AUDIT.md: changed hard-coded evidence commit/hash wording to manifest-backed provenance wording so renderer/documentation follow-ups do not make the audit stale.
+- output/pdf/Full Development and Validation Pipeline - Revised.pdf: regenerated the local ignored revised PDF from current Markdown; output remains local.
+- tmp/pdfs/pipeline_revised_pages/: rendered 10 PNG pages for visual layout inspection.
+- output/stability/windows-cpu-float64-final/: regenerated local ignored exact-source CPU float64 evidence at d9d5b9d.
+- output/stability/windows-cpu-float32-final/: regenerated local ignored exact-source CPU float32 evidence at d9d5b9d.
+- output/stability/cpu-timeout-partial-smoke/: regenerated local ignored timeout smoke evidence at d9d5b9d.
+- output/stability/nvidia-cuda-float64-smoke-after-timeout/: regenerated local ignored CUDA float64 smoke evidence at d9d5b9d.
+- output/stability/torch_osqp_release_summary.md: refreshed ignored local roll-up summary with d9d5b9d manifest provenance.
+
+### What was found
+
+- The repo-local revised PDF was stale relative to docs/FULL_DEVELOPMENT_AND_VALIDATION_PIPELINE.md.
+- Visual inspection caught dark table-header text on the dark navy header background because ReportLab TableStyle text color did not override embedded Paragraph styles.
+- After the renderer fix, the support matrix, defaults table, decision log, footer/page numbering, TOC, and dense evidence/performance page rendered legibly across the 10-page PDF.
+- Because scripts and docs are included in the maintained-source fingerprint, the CPU evidence was regenerated after the renderer/audit commit; all regenerated manifests agree on clean commit d9d5b9d and source hash e6c031a0263a0cf8a0e0b10e8ee6c61eaf07687a169511c87bd4efc94df2c7f6.
+
+### Validation
+
+- python -B scripts/render_pipeline_pdf.py: regenerated output/pdf/Full Development and Validation Pipeline - Revised.pdf.
+- PyMuPDF render of all 10 pages to tmp/pdfs/pipeline_revised_pages: succeeded; visual inspection of contact sheet plus pages 3, 7, 9, and 10 found no clipping/overlap/header contrast defects after the fix.
+- pypdf extraction: 10 pages; required phrases timed_out=true, partial_results=true, Backend support matrix, Evidence package, Migration sequence, Decision log, and cuda_not_promoted were present.
+- python -B -m pytest tests/test_stability_reporting.py -q: 3 passed.
+- python -B -m ruff check scripts/render_pipeline_pdf.py torch_osqp_stability.py tests/test_stability_reporting.py docs/TORCH_OSQP_COMPLETION_AUDIT.md docs/FULL_DEVELOPMENT_AND_VALIDATION_PIPELINE.md: passed, with only the existing removed-rule warning.
+- git diff --check: passed.
+- python -B torch_osqp_stability.py --device cpu --dtype float64 --seeds 100 --stress-seeds 100 --time-limit-seconds 7200 --output output/stability/windows-cpu-float64-final: 300/300, 0 release-gate failures, 128.93s.
+- python -B torch_osqp_stability.py --device cpu --dtype float32 --seeds 100 --stress-seeds 100 --time-limit-seconds 7200 --output output/stability/windows-cpu-float32-final: 300 completed, 100 expected non-gating stress failures, 0 release-gate failures, 980.50s.
+- python -B torch_osqp_stability.py --device cpu --dtype float64 --seeds 1 --stress-seeds 1 --time-limit-seconds 0.01 --output output/stability/cpu-timeout-partial-smoke: exited 1 as expected after writing partial artifacts for 1/3 cases.
+- python -B torch_osqp_stability.py --device cuda --dtype float64 --seeds 1 --stress-seeds 0 --time-limit-seconds 600 --output output/stability/nvidia-cuda-float64-smoke-after-timeout: 2/2, 0 release-gate failures, 9.97s.
+
+### Conclusion
+
+- The revised PDF artifact is regenerated from the current source and visually validated; tracked renderer/audit changes are committed and exact-source CPU evidence has been refreshed locally.
+
+### Next steps
+
+**Codex can proceed:**
+
+- Update the draft PR description with the PDF-renderer fix and latest d9d5b9d evidence if desired.
+- After default-branch workflow registration, run nightly and accelerator promotion workflows from GitHub Actions.
+
+**Human reflection:**
+
+- The manifest-backed audit wording is more robust than embedding a commit hash inside tracked docs, because docs/scripts are intentionally part of the source fingerprint.
+
+### Human action
+
+- Review the regenerated PDF at output/pdf/Full Development and Validation Pipeline - Revised.pdf if you want final visual approval.
+- Provide representative accelerator runners before promoting CUDA/ROCm/MPS support claims.
+
