@@ -526,3 +526,69 @@ Entries record Codex-assisted work sessions, findings, validation, conclusions, 
 
 - Configure a real Git signing identity and create signed tag research-sparse-cg-cuda-graph-final at da142c1; run hosted CPU/PyTorch-version CI and real-hardware backend gates before release promotion.
 
+## Torch-OSQP release audit and evidence refresh
+
+- Status: completed
+- Start local time: 2026-07-01 14:20:00 CDT-0500 (approx.)
+- End local time: 2026-07-01 19:22:24 Central Daylight Time-0500
+- Duration: approximately 5h
+
+### Goal
+
+- Clear the signed-tag/CI blockers, refresh the Torch-OSQP audit and stability evidence, and identify any remaining backend promotion blockers.
+
+### What changed
+
+- docs/TORCH_OSQP_COMPLETION_AUDIT.md: updated signed archive tag, hosted core CI, workflow-registration, CUDA promotion, and remaining-release-action status.
+- torch_osqp_stability.py: moved stability conditioning estimation to a deterministic CPU dense initial-KKT diagnostic while keeping backend solves on the requested device.
+- docs/FULL_DEVELOPMENT_AND_VALIDATION_PIPELINE.md: documented CPU-side condition diagnostics for stability artifacts.
+- output/stability/windows-cpu-float64-final/: regenerated local ignored 300-case CPU float64 final evidence at commit 02e24fb.
+- output/stability/windows-cpu-float32-final/: regenerated local ignored 300-case CPU float32 final evidence at commit 02e24fb.
+- output/stability/nvidia-cuda-float64-final/: regenerated local ignored 300-case CUDA float64 final evidence at commit 02e24fb.
+- output/stability/nvidia-cuda-float32-qualified-final/: regenerated local ignored 200-case CUDA float32 supported-family evidence at commit 02e24fb.
+- output/stability/torch_osqp_release_summary.md: refreshed local ignored roll-up summary for current evidence and the CUDA float32 stress timeout.
+
+### What was found
+
+- The signed archive tag research-sparse-cg-cuda-graph-final verifies with key 913CC0E29352B362D9116C59387554B041B0ACDD, points to da142c1, and is present on origin.
+- Hosted core workflow run 28492270655 passed all seven Linux, Windows, and macOS CPU jobs on the feature branch.
+- Nightly and CUDA promotion workflows exist on the feature branch but cannot be externally dispatched until they are present on the repository default branch.
+- Accelerator-side condition estimation made CUDA float64 evidence impractically slow; estimating the dense initial KKT condition on CPU preserves deterministic diagnostics without exercising slow accelerator condition kernels.
+- CPU float64, CPU float32, and CUDA float64 full buckets completed with zero release-gate failures; CUDA float32 supported-family evidence also completed cleanly.
+- The full CUDA float32 stress bucket exceeded the two-hour local gate on GTX 1650 and was killed before final CSV/manifest emission after writing 24 stress reproduction files; CUDA also remains unpromoted because prior end-to-end B1/B2/B3 slowdowns exceed the 5x auto-promotion ceiling.
+
+### Validation
+
+- git tag -v research-sparse-cg-cuda-graph-final with the configured MSYS GPG home: good signature from the configured signing identity.
+- gh run view 28492270655 --repo Ztang-Yit-Xiaang/PyGRANSO: Torch OSQP core workflow succeeded across seven jobs.
+- python -B torch_osqp_stability.py --device cpu --dtype float64 --seeds 100 --stress-seeds 100 --time-limit-seconds 7200 --output output/stability/windows-cpu-float64-final: 300 cases, 0 numerical failures, 0 release-gate failures, 427.96s.
+- python -B torch_osqp_stability.py --device cpu --dtype float32 --seeds 100 --stress-seeds 100 --time-limit-seconds 7200 --output output/stability/windows-cpu-float32-final: 300 cases, 100 expected non-gating stress failures, 0 release-gate failures, 1952.26s.
+- python -B torch_osqp_stability.py --device cuda --dtype float64 --seeds 100 --stress-seeds 100 --time-limit-seconds 7200 --output output/stability/nvidia-cuda-float64-final: 300 cases, 0 numerical failures, 0 release-gate failures, 3661.74s.
+- python -B torch_osqp_stability.py --device cuda --dtype float32 --seeds 100 --stress-seeds 0 --time-limit-seconds 7200 --output output/stability/nvidia-cuda-float32-qualified-final: 200 cases, 0 numerical failures, 0 release-gate failures, 720.53s.
+- python -B torch_osqp_stability.py --device cuda --dtype float32 --seeds 100 --stress-seeds 100 --time-limit-seconds 7200 --output output/stability/nvidia-cuda-float32-final: timed out externally after exceeding the two-hour gate; no final CSV/manifest, 24 stress reproduction files retained.
+- python -B -m pytest tests/test_stability_reporting.py -q: 2 passed in 4.78s.
+- python -B -m ruff check torch_osqp_stability.py tests/test_stability_reporting.py docs/TORCH_OSQP_COMPLETION_AUDIT.md docs/FULL_DEVELOPMENT_AND_VALIDATION_PIPELINE.md: passed, with only the existing removed-rule warning.
+- git diff --check: passed.
+
+### Conclusion
+
+- The signed-tag and hosted core-CI blockers are cleared, dense-LU stability evidence is refreshed locally at commit 02e24fb, and CUDA remains correctly unpromoted because the float32 stress bucket/performance promotion gates are not satisfied on the available hardware.
+
+### Next steps
+
+**Codex can proceed:**
+
+- Add graceful partial CSV/manifest emission for time-limit exits in torch_osqp_stability.py, then regenerate exact-commit evidence if the user wants the reporting behavior fixed before PR.
+- Open or update the release PR once the user is ready, then rerun the workflow-dispatch gates after the nightly/CUDA workflows are registered on the default branch.
+
+**Human reflection:**
+
+- CUDA float32 has clean supported-family correctness on the local GTX 1650, but the stress and speed gates argue against automatic promotion; treating explicit CUDA as experimental/unpromoted is the safer support boundary.
+- The current stability script writes final CSV/manifest only after all cases complete, so timeout artifacts are weaker than they should be; this is a reporting robustness improvement rather than a solver-correctness issue.
+
+### Human action
+
+- Review and accept the CUDA support claim boundary: CPU is promoted, CUDA explicit use is available but auto remains builtin fallback until both the two-hour stress bucket and <=5x end-to-end gate pass on representative hardware.
+- Merge/register the feature-branch workflows on the default branch before relying on scheduled or manual workflow_dispatch nightly/CUDA gates.
+- Provide real ROCm and MPS runners before claiming those backends.
+
