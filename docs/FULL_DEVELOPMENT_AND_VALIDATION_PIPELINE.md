@@ -331,8 +331,8 @@ therefore remains explicit-only and `auto` records a warned
 ### 18. Migration sequence
 
 1. Validate and preserve the sparse-CG/CUDA Graph research snapshot.
-2. Create archive branch `archive/sparse-cg-cuda-graph`.
-3. Create signed tag `research-sparse-cg-cuda-graph-final` when a signing key is available.
+2. Create and push archive branch `archive/sparse-cg-cuda-graph`.
+3. Create and push signed tag `research-sparse-cg-cuda-graph-final`.
 4. Remove custom CG, Jacobi, sparse-operator, CUDA Graph, and selection code from the package path.
 5. Add DenseLUSolver and optimizer-owned workspace tests.
 6. Refactor direct ADMM around reusable LU.

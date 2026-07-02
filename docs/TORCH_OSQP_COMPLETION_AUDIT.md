@@ -11,7 +11,7 @@ has produced evidence.
 
 | Requirement | Authoritative evidence | Status |
 | --- | --- | --- |
-| Preserve research snapshot | Branch `archive/sparse-cg-cuda-graph`, commit `da142c1`, baseline 79-test result in the edit log | Implemented |
+| Preserve research snapshot | Branch `archive/sparse-cg-cuda-graph` exists locally and on `origin` at commit `da142c1`; baseline 79-test result is recorded in the edit log | Implemented and pushed to origin |
 | Signed archive tag | Tag `research-sparse-cg-cuda-graph-final` verifies as a PGP-signed tag at `da142c1` with key `913CC0E29352B362D9116C59387554B041B0ACDD`; `origin` has tag object `d40a6e0` | Implemented and pushed to origin |
 | Remove research execution from active path | Legacy benchmark, presentation, old adapter test, custom CG, sparse operator, and CUDA Graph code absent from the feature branch; archive branch retains them | Implemented |
 | Dense private LU lifecycle | `torchLinearSolve.py` uses `lu_factor_ex`, `lu_solve`, finite/status checks, RHS normalization, reuse, and optional diagnostics | Implemented and unit tested |
