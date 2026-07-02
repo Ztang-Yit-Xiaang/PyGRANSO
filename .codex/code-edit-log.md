@@ -721,3 +721,65 @@ Entries record Codex-assisted work sessions, findings, validation, conclusions, 
 - Review the regenerated PDF at output/pdf/Full Development and Validation Pipeline - Revised.pdf if you want final visual approval.
 - Provide representative accelerator runners before promoting CUDA/ROCm/MPS support claims.
 
+## Torch-OSQP archive branch audit refresh
+
+- Status: completed
+- Start local time: 2026-07-02 01:07:00 CDT-0500
+- End local time: 2026-07-02 01:35:34 Central Daylight Time-0500
+- Duration: approximately 28m
+
+### Goal
+
+- Close the migration-archive evidence gap, refresh exact-source local evidence, and verify the full local solver/test suite after the latest PR work.
+
+### What changed
+
+- docs/TORCH_OSQP_COMPLETION_AUDIT.md: updated the research-snapshot row to state that archive/sparse-cg-cuda-graph exists both locally and on origin at da142c1.
+- docs/FULL_DEVELOPMENT_AND_VALIDATION_PIPELINE.md: updated the migration sequence to say the archive branch and signed tag are created and pushed.
+- output/pdf/Full Development and Validation Pipeline - Revised.pdf: regenerated the local ignored PDF after the migration-sequence wording change.
+- output/stability/windows-cpu-float64-final/: regenerated local ignored exact-source CPU float64 evidence at e328fbf.
+- output/stability/windows-cpu-float32-final/: regenerated local ignored exact-source CPU float32 evidence at e328fbf.
+- output/stability/cpu-timeout-partial-smoke/: regenerated local ignored timeout smoke evidence at e328fbf.
+- output/stability/nvidia-cuda-float64-smoke-after-timeout/: regenerated local ignored CUDA float64 smoke evidence at e328fbf.
+- output/stability/torch_osqp_release_summary.md: refreshed ignored local roll-up summary with e328fbf manifest provenance.
+
+### What was found
+
+- The signed archive tag was already on origin, but the archive branch itself was not visible on origin; this left the migration archive evidence weaker than the requested branch-and-tag preservation.
+- Pushed origin/archive/sparse-cg-cuda-graph at da142c1641c6f14ba3eb564abe88ff16972d771a.
+- The signed tag research-sparse-cg-cuda-graph-final verifies with configured GNUPGHOME=/c/Users/1/AppData/Roaming/gnupg and key 913CC0E29352B362D9116C59387554B041B0ACDD.
+- All refreshed local manifests agree on clean commit e328fbfc7eeba6e9aab23fce3c2e7a535ba4cd02 and source hash ab4666de0098558c7868bd995d95272a3212757f8e85619c8bae948eec0fe64b.
+
+### Validation
+
+- python -B -m pytest -q: 72 passed, 1 existing NumPy deprecation warning.
+- python -B -m ruff check .: passed, with only the existing removed-rule warning.
+- git push origin archive/sparse-cg-cuda-graph: created the origin archive branch.
+- GNUPGHOME=/c/Users/1/AppData/Roaming/gnupg git tag -v research-sparse-cg-cuda-graph-final: good signature from Ztang-Yit-Xiaang.
+- python -B scripts/render_pipeline_pdf.py plus pypdf extraction: regenerated 10-page PDF and confirmed migration branch/tag text, timed_out=true, and Decision log are present.
+- python -B torch_osqp_stability.py --device cpu --dtype float64 --seeds 100 --stress-seeds 100 --time-limit-seconds 7200 --output output/stability/windows-cpu-float64-final: 300/300, 0 release-gate failures, 127.23s.
+- python -B torch_osqp_stability.py --device cpu --dtype float32 --seeds 100 --stress-seeds 100 --time-limit-seconds 7200 --output output/stability/windows-cpu-float32-final: 300 completed, 100 expected non-gating stress failures, 0 release-gate failures, 1006.32s.
+- python -B torch_osqp_stability.py --device cpu --dtype float64 --seeds 1 --stress-seeds 1 --time-limit-seconds 0.01 --output output/stability/cpu-timeout-partial-smoke: exited 1 as expected after writing partial artifacts for 1/3 cases.
+- python -B torch_osqp_stability.py --device cuda --dtype float64 --seeds 1 --stress-seeds 0 --time-limit-seconds 600 --output output/stability/nvidia-cuda-float64-smoke-after-timeout: 2/2, 0 release-gate failures, 26.14s.
+- git diff --check: passed before report append.
+
+### Conclusion
+
+- The migration archive branch-and-tag evidence is now complete on origin, broad local tests/lint are passing, and exact-source CPU evidence has been refreshed at e328fbf.
+
+### Next steps
+
+**Codex can proceed:**
+
+- Update the draft PR body/check status after the report commit and continue monitoring CI if needed.
+- If the user approves release progression, mark the draft PR ready or merge/register workflows on main; otherwise keep the branch as a green draft PR.
+
+**Human reflection:**
+
+- The remaining support boundary is no longer archive preservation; it is release-policy/hardware: default-branch workflow activation and representative accelerator runners.
+
+### Human action
+
+- Decide whether to mark the draft PR ready for review or merge it to main to register nightly/CUDA workflows.
+- Provide representative CUDA/ROCm/MPS hardware if automatic accelerator promotion claims are desired.
+
