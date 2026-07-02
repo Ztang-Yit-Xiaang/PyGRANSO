@@ -36,7 +36,6 @@ ignore = [
     "E741",   # ambiguous variable name l, O (legacy)
     "F811",   # redefinition (e.g. copyrightNotice import + use)
     "UP031",  # percent format (legacy; can migrate later)
-    "UP038",  # X | Y isinstance (Python 3.10+)
 ]
 isort = { known-first-party = ["pygranso"] }
 
