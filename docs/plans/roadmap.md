@@ -924,8 +924,9 @@ Tasks:
 - [x] Add failure reproduction output.
 - [x] Add core CI workflow.
 - [x] Add nightly workflow file on the feature branch.
+- [x] Register and run nightly workflow on fork `main`.
 - [x] Add hardware promotion workflow file on the feature branch.
-- [ ] Register/merge nightly workflow so scheduled/dispatch gates can run from the default branch.
+- [ ] Register/merge nightly and hardware workflows on upstream `main` before relying on upstream schedules/dispatch.
 - [ ] Promote CUDA only after representative correctness and <=5x performance evidence.
 - [ ] Obtain ROCm and MPS runners before making either support claim.
 
@@ -953,8 +954,10 @@ Tasks:
 - [x] Verify docs match current source and evidence.
 - [x] Verify evidence artifact expectations.
 - [x] Verify roadmap checkboxes for already-implemented work.
-- [ ] Open or update release PR from `feature/torch-osqp-dense-reference`.
-- [ ] Merge/register workflows before relying on default-branch schedules/dispatch.
+- [x] Open or update release PR from `feature/torch-osqp-dense-reference`.
+- [x] Verify fork `main` workflow registration and nightly CPU evidence.
+- [ ] Obtain upstream review/merge for PR `#63`.
+- [ ] Merge/register workflows on upstream `main` before relying on upstream schedules/dispatch.
 - [ ] Keep accelerator support claims conservative until promotion evidence exists.
 
 Exit Criteria:
@@ -975,8 +978,9 @@ Exit Criteria:
 9. [x] Implement backend policy, migration errors, size guards, and fallback telemetry.
 10. [x] Add differential, randomized, hardware-workflow, end-to-end, and reporting gates.
 11. [ ] Promote each accelerator backend only after its correctness and performance evidence passes.
-12. [ ] Update release PR/default-branch workflow registration.
-13. [x] After completed roadmap tasks, change only verified checkboxes from `[ ]` to `[x]`.
+12. [x] Update release PR and verify fork default-branch workflow registration.
+13. [ ] Obtain upstream review/merge and upstream default-branch workflow registration.
+14. [x] After completed roadmap tasks, change only verified checkboxes from `[ ]` to `[x]`.
 
 ### 22. Decision Log
 
