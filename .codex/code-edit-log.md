@@ -838,3 +838,331 @@ Entries record Codex-assisted work sessions, findings, validation, conclusions, 
 - Decide whether to keep the PR draft, mark it ready, or merge it to main for workflow registration.
 - Provide representative accelerator runners before claiming CUDA/ROCm/MPS promotion.
 
+## Torch-OSQP roadmap and data-structure documentation
+
+- Status: completed
+- Start local time: 2026-07-03 15:44:50 -05:00
+- End local time: 2026-07-03 15:48:51 -05:00
+- Duration: approximately 4m
+
+### Goal
+
+- Revise the Markdown pipeline into a more detailed roadmap and make the data-structure, input/output, and function contracts clear, especially for the Phase 2.1 workspace/factorization layer.
+
+### What changed
+
+- docs/FULL_DEVELOPMENT_AND_VALIDATION_PIPELINE.md: updated the document to version 2.1 and added a detailed milestone roadmap. The new roadmap maps each phase to goal, inputs, outputs, data structures, functions, validation, and exit criteria. Phase 2.1 now explicitly documents `TorchOSQPWorkspace`, `DenseLUSolver`, `LinearSolveDiagnostics`, workspace invalidation, and factorization function contracts.
+- docs/TORCH_OSQP_COMPLETION_AUDIT.md: added audit rows noting the roadmap and Phase 2.1 data contract as implemented documentation deliverables.
+- output/pdf/Full Development and Validation Pipeline - Revised.pdf: regenerated the local PDF artifact from the updated Markdown.
+
+### What was found
+
+- The existing pipeline document was technically sound but read more like a final specification than a reviewer-facing roadmap.
+- No Markdown section named exactly "Phase 2.1" was present before this edit, so the new Phase 2.1 section was inferred from the actual workspace and LU data model in the current source.
+- The PDF renderer can handle the expanded roadmap and produced a 19-page document containing both "Milestone roadmap" and "Phase 2.1".
+
+### Validation
+
+- `rg -n "^#{1,6}\\s" docs\\FULL_DEVELOPMENT_AND_VALIDATION_PIPELINE.md`: confirmed heading order and renumbered sections.
+- `rg -n "^(Inputs|Outputs|Data structures|Functions|Validation|Exit criteria|Primary data structures|Function contracts|Workspace input/output contract):" docs\\FULL_DEVELOPMENT_AND_VALIDATION_PIPELINE.md`: confirmed roadmap sections expose the requested contract fields.
+- `python scripts\\render_pipeline_pdf.py`: passed and regenerated the local PDF.
+- `git diff --check -- docs\\FULL_DEVELOPMENT_AND_VALIDATION_PIPELINE.md docs\\TORCH_OSQP_COMPLETION_AUDIT.md`: passed after removing trailing whitespace from updated version/date lines.
+- `pypdf` extraction smoke check: confirmed the regenerated PDF has 19 pages and contains "Milestone roadmap" and "Phase 2.1".
+- Full solver tests were not run because this was a documentation-only edit.
+
+### Conclusion
+
+- The Markdown now contains a roadmap-style milestone pipeline and a clear Phase 2.1 data-structure contract tied to the actual source-level classes, inputs, outputs, functions, validation checks, and exit criteria.
+
+### Next steps
+
+**Codex can proceed:**
+
+- If requested, perform a visual PDF page-by-page review or commit and push the documentation update.
+
+**Human reflection:**
+
+- If you meant a different external "phase2.1" exemplar, compare that exemplar against the new Phase 2.1 section and decide whether the formatting should be adjusted further.
+
+### Human action
+
+- Review the new roadmap wording and confirm whether the inferred Phase 2.1 structure matches the style you wanted.
+
+## Torch-OSQP plans directory correction
+
+- Status: completed
+- Start local time: 2026-07-03 16:35:03 -05:00
+- End local time: 2026-07-03 16:49:59 -05:00
+- Duration: approximately 15m
+
+### Goal
+
+- Create `docs/plans` planning files for the current PyGRANSO/Torch-OSQP project, using `C:/Users/1/Downloads/phase_2.1_plan.md` only as a style model and ignoring its browser-extension content.
+
+### What changed
+
+- docs/plans/README.md: replaced the incorrect Workspace Manager index with a PyGRANSO/Torch-OSQP plan index and clarified that the downloaded Phase 2.1 file is a style model only.
+- docs/plans/roadmap.md: replaced the incorrect Workspace Manager roadmap with a Torch-OSQP dense reference roadmap containing numbered checkbox substeps such as `1.1.1`, `2.1.1`, and `5.1.5`.
+- docs/plans/phase_0.1_archive_snapshot_plan.md: added archive snapshot plan with UML classes for git/archive evidence.
+- docs/plans/phase_0.2_remove_research_paths_plan.md: added active-path cleanup plan with UML classes for legacy guards and removed features.
+- docs/plans/phase_1.1_public_qp_contract_plan.md: added public QP contract plan with UML classes for PyGRANSO and canonical OSQP inputs.
+- docs/plans/phase_1.2_backend_policy_and_fallback_plan.md: added backend selection/fallback plan with telemetry UML.
+- docs/plans/phase_1.3_settings_validation_and_migration_plan.md: added settings, validation, and migration-error plan.
+- docs/plans/phase_2.1_dense_lu_workspace_plan.md: added current-project Phase 2.1 workspace/LU plan without creating a local `phase_2.1_plan.md` duplicate.
+- docs/plans/phase_2.2_direct_admm_kernel_plan.md: added direct ADMM kernel plan.
+- docs/plans/phase_2.3_scaling_adaptive_polishing_plan.md: added scaling, adaptive-rho, polishing, and warm-start plan.
+- docs/plans/phase_3.1_builtin_parity_plan.md: added builtin OSQP parity plan.
+- docs/plans/phase_3.2_pygranso_integration_plan.md: added PyGRANSO integration plan.
+- docs/plans/phase_4.1_tests_and_differential_plan.md: added deterministic, differential, metamorphic, and end-to-end test plan.
+- docs/plans/phase_4.2_stability_evidence_plan.md: added stability evidence package plan.
+- docs/plans/phase_4.3_platform_promotion_plan.md: added platform/backend promotion plan.
+- docs/plans/phase_5.1_documentation_pdf_release_plan.md: added documentation, PDF, and release handoff plan.
+
+### What was found
+
+- The downloaded `roadmap.md` and `phase_2.1_plan.md` describe a different Workspace Manager browser-extension project, so their content was not appropriate for this repository.
+- The useful part of the downloaded Phase 2.1 file is its planning style: existing assets, data structures, detailed UML-style classes, implementation checkboxes, validation, and exit criteria.
+- A local file named `docs/plans/phase_2.1_plan.md` was intentionally not created, matching the clarification.
+
+### Validation
+
+- `rg -n "Workspace Manager|browser extension|ChatGPT|Claude|Gemini|Copilot|Extension Project|Orchestrator|Broadcast|Context Transfer|Side Panel|siteProfiles|chrome\\.storage|browser\\.tabs|AI website" docs\\plans`: no matches.
+- Link-check script over `docs/plans/README.md` and `docs/plans/roadmap.md`: `missing_links=[]`.
+- Plan inventory script: 14 `*_plan.md` files, `has_local_phase_2_1_plan=False`, `missing_uml=[]`, `missing_checkboxes=[]`.
+- `git diff --check -- docs\\plans`: passed.
+- Full solver tests were not run because this was documentation/planning-only.
+
+### Conclusion
+
+- `docs/plans` now contains current-project PyGRANSO/Torch-OSQP milestone plans, not Workspace Manager plans, and each plan follows the requested detailed Phase 2.1-style structure with UML class diagrams and checkbox steps.
+
+### Next steps
+
+**Codex can proceed:**
+
+- Add cross-links from the main pipeline document to `docs/plans/roadmap.md` if you want the generated PDF/spec to advertise the new detailed plan package.
+
+**Human reflection:**
+
+- The plan files are intentionally implementation-oriented and evidence-aware; if you want them shorter for reviewers, we can produce a separate executive roadmap.
+
+### Human action
+
+- Review the `docs/plans` naming and milestone granularity to decide whether any milestone should be split even smaller.
+
+## Torch-OSQP phase plan template rewrite
+
+- Status: completed
+- Start local time: 2026-07-03 17:05:00 -05:00 (approximate)
+- End local time: 2026-07-03 17:30:24 -05:00
+- Duration: approximately 25m
+
+### Goal
+
+- Rewrite all Torch-OSQP phase implementation plans under `docs/plans` to follow the attached `# Phase [X.X] Implementation Plan: [Feature Name]` template.
+
+### What changed
+
+- docs/plans/phase_0.1_archive_snapshot_plan.md: added the missing template `Class Diagram Rules` section while preserving the archive snapshot phase.
+- docs/plans/phase_0.2_remove_research_paths_plan.md: added the missing template `Class Diagram Rules` section while preserving the research-path cleanup phase.
+- docs/plans/phase_1.1_public_qp_contract_plan.md: added the missing template `Class Diagram Rules` section while preserving the public QP contract phase.
+- docs/plans/phase_1.2_backend_policy_and_fallback_plan.md: completed the template structure for backend selection and fallback telemetry.
+- docs/plans/phase_1.3_settings_validation_and_migration_plan.md: completed the template structure for common settings, validation, and legacy migration.
+- docs/plans/phase_2.1_dense_lu_workspace_plan.md: completed the template structure for the workspace and reusable dense LU lifecycle.
+- docs/plans/phase_2.2_direct_admm_kernel_plan.md: rewrote the phase into the template with ASCII diagrams for KKT assembly, ADMM iteration, and result construction.
+- docs/plans/phase_2.3_scaling_adaptive_polishing_plan.md: rewrote the phase into the template with ASCII diagrams for scaling, adaptive rho, polishing, and warm starts.
+- docs/plans/phase_3.1_builtin_parity_plan.md: rewrote the phase into the template with ASCII diagrams for common settings, parity metrics, and differential comparison.
+- docs/plans/phase_3.2_pygranso_integration_plan.md: rewrote the phase into the template with ASCII diagrams for QP requests, BFGS-SQP integration, and fallback contracts.
+- docs/plans/phase_4.1_tests_and_differential_plan.md: rewrote the phase into the template with ASCII diagrams for unit, differential, metamorphic, and end-to-end gates.
+- docs/plans/phase_4.2_stability_evidence_plan.md: rewrote the phase into the template with ASCII diagrams for case results, manifests, failure bundles, and summaries.
+- docs/plans/phase_4.3_platform_promotion_plan.md: rewrote the phase into the template with ASCII diagrams for support matrix entries, promotion records, hardware gates, and performance gates.
+- docs/plans/phase_5.1_documentation_pdf_release_plan.md: rewrote the phase into the template with ASCII diagrams for documentation sources, PDF artifacts, audit entries, and code-edit reports.
+
+### What was found
+
+- The later phase files still used Mermaid `classDiagram` blocks from the earlier plan style; the attached template calls for explicit implementation-plan sections and ASCII-style diagrams.
+- The first six rewritten phase files were already mostly in the new template shape but lacked the exact `## Class Diagram Rules` heading.
+- The generated plan directory still correctly avoided the unrelated Workspace Manager/browser-extension content and did not create `docs/plans/phase_2.1_plan.md`.
+
+### Validation
+
+- Required-heading scan over all `docs/plans/*_plan.md`: 14 phase files, no missing template headings, no missing ASCII diagram markers.
+- `rg -n "classDiagram|```mermaid" docs\\plans`: no matches.
+- `rg -n "Workspace Manager|browser extension|ChatGPT|Claude|Gemini|Copilot|Extension Project|Orchestrator|Broadcast|Context Transfer|Side Panel|siteProfiles|chrome\\.storage|browser\\.tabs|AI website" docs\\plans`: no matches.
+- `Test-Path docs\\plans\\phase_2.1_plan.md`: `False`.
+- Link-check script over `docs/plans/README.md` and `docs/plans/roadmap.md`: no missing links.
+- `git diff --check -- docs\\plans`: passed.
+- Full solver tests were not run because this was a documentation/planning-format rewrite only.
+
+### Conclusion
+
+- All 14 Torch-OSQP phase plan files now follow the attached implementation-plan template with current-project content, required sections, ASCII diagrams, validation rules, testing checklists, and acceptance criteria.
+
+### Next steps
+
+**Codex can proceed:**
+
+- If requested, align the main pipeline document and completion audit with the new `docs/plans` phase filenames and template language.
+
+**Human reflection:**
+
+- The current plans are engineering-spec oriented; if a reviewer-facing shorter plan package is useful, we can generate a separate concise roadmap from these same phases.
+
+### Human action
+
+- Review the new plan style and confirm whether the ASCII diagram density is the level you want before we use it as the standard for future implementation tasks.
+
+## Torch-OSQP decision-complete roadmap rewrite
+
+- Status: completed
+- Start local time: 2026-07-04 00:05:46 -05:00
+- End local time: 2026-07-04 00:12:41 -05:00
+- Duration: approximately 7m
+
+### Goal
+
+- Apply the user's full development and validation pipeline template as the project roadmap, adapting it carefully to the current PyGRANSO Torch-OSQP dense reference implementation, prior pipeline, completion audit, and edit-log evidence.
+
+### What changed
+
+- docs/plans/roadmap.md: replaced the compact checkbox roadmap with a decision-complete project roadmap covering executive decision, acceptance envelope, backend support matrix, outcome policy, risks, architecture, public/canonical contracts, ASCII class/module diagrams, workspace and dense-LU lifecycles, preserved equations, numerical features, defaults, backend fallback, validation pipeline, evidence package, performance gate, milestone status, migration sequence, decision log, and future work.
+- docs/plans/roadmap.md: marked only audit/log-supported work as completed and left release/promotion blockers unchecked, including workflow registration, CUDA promotion, and ROCm/MPS runner acquisition.
+- docs/plans/README.md: adjusted wording from UML-style to ASCII-style class/module details and described `roadmap.md` as the decision-complete roadmap.
+
+### What was found
+
+- `docs/FULL_DEVELOPMENT_AND_VALIDATION_PIPELINE.md` already contained most of the decision-complete technical contract, including the dense Torch route, `n + m <= 2400`, reusable PyTorch LU, OSQP equations, defaults, fallback policy, evidence package, and 5x performance gate.
+- `docs/TORCH_OSQP_COMPLETION_AUDIT.md` shows dense LU, workspace state, ADMM equations, numerical features, public policy, fallback telemetry, deterministic tests, local CPU evidence, and documentation deliverables are implemented/evidenced, while CUDA remains unpromoted and ROCm/MPS remain unclaimed.
+- The existing `docs/plans` phase filenames stop at Phase 5.1, so the roadmap keeps backend promotion as Phase 4.3 and documentation/release handoff as Phase 5.1 rather than inventing new unlinked Phase 6 files.
+
+### Validation
+
+- Placeholder scan for unresolved template markers in `docs/plans/roadmap.md` and `docs/plans/README.md`: no matches.
+- Mermaid/unrelated-content scan over `docs/plans`: no matches.
+- Local link-check script over `docs/plans/README.md` and `docs/plans/roadmap.md`: `link_problems=[]`.
+- `git diff --check -- docs\\plans`: passed.
+- Direct inspection confirmed `docs/plans/roadmap.md` now starts with version/date/status metadata and Section 20 contains checked implemented items plus unchecked release/promotion blockers.
+- Full solver tests were not run because this was a documentation/roadmap rewrite only.
+
+### Conclusion
+
+- `docs/plans/roadmap.md` now applies the user's roadmap template to the actual PyGRANSO Torch-OSQP project and reflects current implemented, evidenced, and still-blocked work without expanding scope or overclaiming accelerator support.
+
+### Next steps
+
+**Codex can proceed:**
+
+- If requested, align `docs/FULL_DEVELOPMENT_AND_VALIDATION_PIPELINE.md` with the new roadmap wording or regenerate the PDF from the updated roadmap package.
+
+**Human reflection:**
+
+- The roadmap now marks implemented items based on the audit/log; if you prefer `docs/plans/roadmap.md` to be purely forward-looking, we can revert the checked items to unchecked and keep implementation status only in the audit.
+
+### Human action
+
+- Review the checked/unchecked roadmap status, especially the conservative accelerator-promotion blockers, before using it as the release-facing roadmap.
+
+## Torch-OSQP release-readiness package sync
+
+- Status: completed
+- Start local time: 2026-07-04 00:29:19 -05:00
+- End local time: 2026-07-04 00:32:21 -05:00
+- Duration: approximately 3m
+
+### Goal
+
+- Preserve and sync the release-readiness documentation package so the main pipeline, audit, roadmap, PDF, and external Report tracker agree before PR/workflow work.
+
+### What changed
+
+- docs/FULL_DEVELOPMENT_AND_VALIDATION_PIPELINE.md: updated version/date/status to 2.2 / 2026-07-04 / release-candidate specification with accelerator promotion gated; linked `docs/plans/roadmap.md` as the checked/unchecked release-readiness status source; added `docs/plans` and the external Report tracker to the documentation handoff artifacts.
+- docs/TORCH_OSQP_COMPLETION_AUDIT.md: updated the audit date, named `docs/plans/roadmap.md` as the status source linking to 14 phase plans, and added the external release-readiness tracker row.
+- output/pdf/Full Development and Validation Pipeline - Revised.pdf: regenerated locally from the updated pipeline Markdown; the artifact did not appear as a tracked Git change.
+- F:/UMN Researches/Ju Research/Report/2026-07-04_pygranso_torch_osqp_release_tracking.md: updated with this same high-level work-session result.
+
+### What was found
+
+- The main pipeline was still versioned 2.1 / 2026-07-03 and did not explicitly reference the new `docs/plans` release checklist package.
+- The audit already had the correct conservative backend status but did not name the external Report tracker.
+- The generated PDF still renders as 19 pages and includes the expected release-facing sections.
+
+### Validation
+
+- `git status --short --branch`: confirmed the release-package scope is documentation/plans/log changes; no solver source files changed.
+- `git diff --check`: passed after removing one trailing-space date line in the audit; only a pre-existing CRLF warning for `.codex/code-edit-log.md` remained.
+- Local link-check script for `docs/plans/README.md` and `docs/plans/roadmap.md`: `link_problems=[]`.
+- Placeholder scan for unresolved template tokens in roadmap/pipeline/audit: no matches.
+- Mermaid/unrelated-content scan over plans/pipeline/audit: no matches.
+- Conservative support scan confirmed CUDA remains unpromoted and ROCm/MPS remain unclaimed in roadmap, pipeline, and audit.
+- `python scripts\\render_pipeline_pdf.py`: passed and regenerated the local PDF.
+- PDF smoke check with `pypdf`: 19 pages; TOC, support matrix, risk table, roadmap, decision log, `docs/plans/roadmap.md`, and gated accelerator status were found.
+- Full solver/stability suites were not run because this was a documentation/release-package stabilization step only.
+
+### Conclusion
+
+- The release-readiness package is synchronized: the main pipeline points to the new plan package, the audit records the status source and tracker, the PDF was regenerated and smoke-checked, and backend promotion remains conservatively blocked.
+
+### Next steps
+
+**Codex can proceed:**
+
+- Prepare the clean commit/PR handoff scope and then update or open the release PR when requested.
+
+**Human reflection:**
+
+- Decide whether the external Report tracker should be committed separately, copied into the repo, or kept as a local research notebook outside git.
+
+### Human action
+
+- Review the intended commit scope before PR work: `docs/plans/`, pipeline/audit docs, `.codex/code-edit-log.md`, and optionally the external Report tracker.
+
+## Torch-OSQP release diff review and staging
+
+- Status: completed
+- Start local time: 2026-07-05 18:30:00 -05:00
+- End local time: 2026-07-05 18:36:41 -05:00
+- Duration: approximately 7m
+
+### Goal
+
+- Review the release-package diff and prepare the intended documentation package for commit/PR handoff without including local evidence artifacts or the external Report notebook.
+
+### What changed
+
+- docs/plans/roadmap.md: removed trailing spaces from the metadata lines so `git diff --check` passes.
+- Repository index: staged the intended release-package files after validation.
+
+### What was found
+
+- The diff scope contains documentation/plans/log changes only: `.codex/code-edit-log.md`, the main pipeline, the completion audit, and 16 files under `docs/plans`.
+- No solver source files, local stability artifacts, or external Report notebook files are part of the repository diff.
+- `docs/plans` was already in Git intent-to-add state, so it appeared in `git diff` as added files.
+
+### Validation
+
+- `git diff --stat`: 19 files, 5763 insertions, 22 deletions before staging.
+- `git diff --check`: passed after trimming roadmap metadata trailing spaces; the only message was the existing CRLF warning for `.codex/code-edit-log.md`.
+- Local link-check script for `docs/plans/README.md` and `docs/plans/roadmap.md`: `link_problems=[]`.
+- Placeholder scan for unresolved template tokens in roadmap/pipeline/audit: no matches.
+- Mermaid/unrelated-content scan over plans/pipeline/audit: no matches.
+- Conservative support scan confirmed CUDA remains unpromoted and ROCm/MPS remain unclaimed.
+- Full solver/stability tests were not run because this was a diff review and documentation-staging step only.
+
+### Conclusion
+
+- The release-package diff is reviewed, clean, and staged for commit/PR handoff while keeping the external Report tracker outside git.
+
+### Next steps
+
+**Codex can proceed:**
+
+- Commit the staged release-package documentation changes and prepare PR notes if requested.
+
+**Human reflection:**
+
+- The staged package is documentation-heavy by design; consider whether `.codex/code-edit-log.md` should remain part of the PR or be squashed/handled separately according to project norms.
+
+### Human action
+
+- Review the staged diff once more before committing or opening/updating the PR.
+

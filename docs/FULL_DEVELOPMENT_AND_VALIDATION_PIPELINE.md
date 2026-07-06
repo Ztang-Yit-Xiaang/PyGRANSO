@@ -1,8 +1,8 @@
 # Full Development and Validation Pipeline
 
-Version: 2.0  
-Date: 2026-06-23  
-Status: Implementation specification
+Version: 2.2
+Date: 2026-07-04
+Status: Release-candidate specification and roadmap; accelerator promotion gated
 
 ## Part I - Executive Summary
 
@@ -91,7 +91,449 @@ The linear-solver boundary is internal. The user selects only
 `osqp_algebra={auto,builtin,torch}`. No nested linear-solver selector is
 exposed until a second validated Torch backend exists.
 
-### 7. Canonical QP contract
+### 7. Milestone roadmap
+
+This roadmap is the work-breakdown view of the specification. Each phase is
+complete only when its interface, data structures, tests, and evidence artifacts
+are all present. The roadmap intentionally keeps solver correctness ahead of
+performance and moves certificate/nonconvex/sparse claims to later work.
+
+The decision-complete release checklist and per-phase implementation plans live
+under `docs/plans/`, with `docs/plans/roadmap.md` as the status source for
+checked and unchecked release-readiness tasks.
+
+#### Phase 0 - Research snapshot and rollback point
+
+Goal: preserve the prior sparse-CG/CUDA Graph research state before narrowing
+the main package path to the dense reference route.
+
+Inputs:
+
+- current sparse-CG, sparse-operator, Jacobi, and CUDA Graph research code;
+- old benchmarks, tests, notebooks, documentation, and local evidence;
+- current git branch and release candidate worktree.
+
+Outputs:
+
+- archive branch `archive/sparse-cg-cuda-graph`;
+- signed tag `research-sparse-cg-cuda-graph-final`;
+- baseline validation result for the archived snapshot;
+- main branch with research execution removed from the active package path.
+
+Data structures and artifacts:
+
+- git branch/tag objects are the durable archive handles;
+- archived tests and benchmark files remain available only through the archive;
+- `.codex/code-edit-log.md` records the baseline and migration decision.
+
+Functions and commands:
+
+- `git branch`, `git tag`, `git push`;
+- package-path deletion of custom CG, sparse operator, Jacobi, and CUDA Graph
+  selection code.
+
+Validation:
+
+- verify archive branch and tag resolve to the intended commit;
+- verify active package imports no removed research solver path;
+- record baseline test status before removal.
+
+Exit criteria:
+
+- a reviewer can recover the research snapshot from git;
+- the active route contains no hidden sparse-CG/CUDA Graph execution path.
+
+#### Phase 1 - Public QP contract and backend policy
+
+Goal: define the public behavior before implementing the dense reference
+internals.
+
+Inputs:
+
+- PyGRANSO QP arguments `H`, `f`, `A`, `b`, `LB`, `UB`;
+- requested `torch_device`;
+- `double_precision`;
+- `osqp_options` containing `algebra`, `settings`, and `workspace`.
+
+Outputs:
+
+- canonical OSQP problem `P`, `q`, `A_osqp`, `l`, `u`;
+- backend selection result: `builtin` or `torch`;
+- result tensor on the requested or documented fallback device;
+- structured `info` dictionary when `return_info=True`.
+
+Data structures:
+
+- `DEFAULT_OSQP_SETTINGS` is the common settings source;
+- `PROMOTED_ACCELERATOR_BACKENDS` controls automatic accelerator eligibility;
+- fallback telemetry is stored in `info["fallback"]`;
+- backend cache state is stored in `TorchOSQPWorkspace`.
+
+Functions:
+
+- `solveQP(...)` is the PyGRANSO QP entry point;
+- `_solve_osqp_with_warm_state(...)` injects per-run workspace state;
+- `solve_osqp_torch_qp(...)` owns public OSQP backend selection;
+- `_select_backend(...)` applies `auto`, `builtin`, and `torch` policy;
+- `_build_constraints_torch(...)` and `_build_constraints_numpy(...)` create
+  canonical OSQP rows.
+
+Validation:
+
+- accepted `osqp_algebra` values are exactly `auto`, `builtin`, and `torch`;
+- CPU `auto` uses builtin OSQP;
+- unpromoted or unsupported accelerator `auto` falls back with warning and
+  telemetry;
+- explicit `torch` never changes backend silently.
+
+Exit criteria:
+
+- public behavior is stable before inner solver work begins;
+- unsupported options fail with actionable migration errors.
+
+#### Phase 2.1 - Data model, workspace, and factorization lifecycle
+
+Goal: make reusable state explicit, private, and safe across repeated QP solves.
+This is the primary data-structure milestone.
+
+Primary data structures:
+
+- `TorchOSQPWorkspace`
+  - Owner: one `AlgBFGSSQP` run.
+  - Input role: passed as `osqp_options["workspace"]`.
+  - Output role: records warm state, solver factors, backend cache, and latest
+    diagnostics.
+  - Warm-state fields: `state["x"]`, `state["z"]`, `state["y"]`.
+  - Structure fields: `problem_signature`, `constraint_order_signature`,
+    `p_pattern`, `a_pattern`.
+  - Scaling fields: `scaling`, `scaling_source_p`, `scaling_source_a`,
+    `scaling_passes`.
+  - Rho fields: `rho_bar`, `rho_setting`.
+  - Backend fields: `active_backend`, `builtin_cache`, `builtin_stats`.
+  - Solver field: `linear_solver`, an owned `DenseLUSolver`.
+  - Diagnostic field: `last_info`.
+- `DenseLUSolver`
+  - Owner: `TorchOSQPWorkspace.linear_solver`.
+  - Input role: receives dense KKT matrix `K` and finite RHS tensors.
+  - Output role: returns solution tensors and `LinearSolveDiagnostics`.
+  - Cached fields: matrix clone, LU factors, pivots, factorization status.
+  - Counters: `factorization_count`, `solve_count`.
+- `LinearSolveDiagnostics`
+  - Owner: emitted per linear solve.
+  - Fields: solver name, LU info, factorization count, solve count, optional
+    absolute and relative linear residuals.
+
+Workspace input/output contract:
+
+| Operation | Input | Preserved output | Invalidated output |
+| --- | --- | --- | --- |
+| Vector-only update | same P/A values and structure, new q/l/u | x, z, y, rho, scaling, LU | none |
+| Matrix-value update | same P/A shape, pattern, dtype, device, order | x, z, y | scaling and LU |
+| Rho or sigma change | compatible problem, changed setting | x, z, y | LU |
+| Dimension/order/structure change | changed shape, pattern, or constraint order | none | x, z, y, scaling, LU |
+| Dtype/device/backend change | changed dtype, device, or selected backend | none | complete workspace |
+
+Function contracts:
+
+| Function | Input | Output | Failure mode |
+| --- | --- | --- | --- |
+| `TorchOSQPWorkspace.ensure_backend(backend)` | `"builtin"` or `"torch"` | boolean backend-change flag | `ValueError` for unknown backend |
+| `TorchOSQPWorkspace.reset_torch()` | none | clears Torch warm state, scaling, rho, LU, diagnostics | none |
+| `DenseLUSolver.factorize(K)` | square finite strided float32/float64 tensor | cached LU/pivots and incremented factorization count | `TorchLinearSolveError` or validation error |
+| `DenseLUSolver.solve(rhs)` | finite vector or matrix RHS matching K | solution with vector shape restored plus diagnostics | `TorchLinearSolveError` or validation error |
+| `DenseLUSolver.factorize_if_needed(K)` | candidate KKT matrix | `True` when factorized, `False` when reused | same as `factorize` |
+| `_prepare_workspace(workspace, P, A, order)` | workspace plus canonical matrices | compatible state preserved or reset deterministically | none for valid inputs |
+
+Validation:
+
+- unit-test RHS vector normalization and matrix RHS solves;
+- reject nonfinite matrices/RHS values before LU/solve;
+- check LU `info` and nonfinite factors/solutions;
+- prove factorization reuse for vector-only updates;
+- prove refactorization for matrix-value, rho, or sigma updates;
+- prove complete invalidation for structure/order/dtype/device/backend changes.
+
+Exit criteria:
+
+- no module global stores Torch OSQP warm state or factors;
+- every reusable object has one owner and one invalidation policy;
+- diagnostics can explain whether factors were reused, rebuilt, or cleared.
+
+#### Phase 2.2 - Dense Torch ADMM kernel
+
+Goal: implement the direct dense reference solver around the Phase 2.1
+factorization boundary while preserving the OSQP equations.
+
+Inputs:
+
+- validated `P`, `q`, `A`, `l`, `u`;
+- normalized settings;
+- compatible `TorchOSQPWorkspace`.
+
+Outputs:
+
+- solution tensor `x` shaped `(n, 1)`;
+- updated workspace state `x`, `z`, `y`;
+- `info` with status, residuals, objective, iterations, rho, scaling, and
+  factorization counters.
+
+Data structures:
+
+- dense KKT matrix `K`;
+- ADMM vectors `x`, `z`, `y`, `x_tilde`, `z_tilde`, `nu`;
+- vector-valued `rho_vec`, with equality rows boosted.
+
+Functions:
+
+- `build_kkt_matrix(P, A, sigma, rho_vec)`;
+- `build_kkt_rhs(x, z, y, q, sigma, rho_vec)`;
+- `recover_z_tilde(z, nu, y, rho_vec)`;
+- `admm_vector_update(...)`;
+- `solve_torch_osqp_direct(...)`.
+
+Validation:
+
+- KKT block assembly and RHS tests;
+- projection and dual-update equation tests;
+- finite solution and residual checks;
+- solved/max-iteration status handling only.
+
+Exit criteria:
+
+- mathematical equations match the specification;
+- numerical failures are raised or reported as unsolved, never as infeasibility.
+
+#### Phase 2.3 - Scaling, adaptive rho, polishing, and warm starts
+
+Goal: add the numerical features required for observable OSQP agreement without
+changing the public backend contract.
+
+Inputs:
+
+- Phase 2.2 dense direct solve;
+- settings for scaling, adaptive rho, polishing, and warm start;
+- existing workspace state when compatible.
+
+Outputs:
+
+- scaled solve whose accepted residuals/objective are reported in original
+  coordinates;
+- deterministic rho updates and refactorized KKT matrices;
+- accepted polished solution or explicit polishing failure;
+- reusable warm state for the next compatible solve.
+
+Data structures:
+
+- Ruiz scaling dictionary: `D`, `E`, `cost`, `passes`;
+- original-coordinate state dictionary: `x`, `z`, `y`;
+- polishing active-set rows and active RHS;
+- polishing info fields in `info`.
+
+Functions:
+
+- `_scaling_for_problem(...)`;
+- `_scale_problem(...)`;
+- `_initial_scaled_state(...)`;
+- `_unscale_state(...)`;
+- `_adaptive_rho_update(...)`;
+- `_polish_solution(...)`;
+- `_residuals(...)`.
+
+Validation:
+
+- scaling round-trip tests;
+- deterministic adaptive-rho tests;
+- polishing active-row and duplicate-row tests;
+- warm-start reuse and invalidation tests.
+
+Exit criteria:
+
+- every residual and objective used for acceptance is in original coordinates;
+- polishing cannot silently degrade an accepted result;
+- compatible warm starts are observable through diagnostics.
+
+#### Phase 3 - Builtin parity, fallback, and public telemetry
+
+Goal: make builtin OSQP and Torch OSQP comparable through one adapter contract.
+
+Inputs:
+
+- PyGRANSO QP form;
+- selected backend;
+- normalized common settings;
+- per-run workspace.
+
+Outputs:
+
+- builtin or Torch solution tensor;
+- common residual/objective metrics;
+- backend/fallback telemetry;
+- builtin workspace setup/update counters.
+
+Data structures:
+
+- builtin OSQP cache with sparse `P`, sparse `A`, OSQP problem, and last result;
+- `builtin_stats` with setup, update, rebuild, and cache-hit counts;
+- `info["fallback"]` with trigger, selected backend, fallback backend, status
+  or exception, and device-transfer flag.
+
+Functions:
+
+- `_solve_builtin_osqp_path(...)`;
+- `_builtin_common_metrics(...)`;
+- `_dense_polish_builtin(...)`;
+- `_selection_fallback(...)`;
+- `_accelerator_capability(...)`;
+- `_builtin_result_device(...)`.
+
+Validation:
+
+- builtin cache reuse for structurally compatible updates;
+- auto Torch exception fallback;
+- auto unsolved-status fallback;
+- memory and size fallback;
+- MPS float64 CPU-result behavior.
+
+Exit criteria:
+
+- automatic fallback is always visible;
+- explicit Torch failures remain explicit;
+- builtin and Torch comparisons use shared metrics rather than raw iterates.
+
+#### Phase 4 - Validation evidence pipeline
+
+Goal: prove the solver behavior through deterministic, differential,
+metamorphic, randomized, end-to-end, and platform gates.
+
+Inputs:
+
+- unit tests under `tests/`;
+- fixed randomized seeds;
+- backend/device/dtype matrix;
+- PyGRANSO B1/B2/B3 workloads.
+
+Outputs:
+
+- passing deterministic core test result;
+- nightly 100-seed evidence per family/backend bucket;
+- serialized reproduction data for each failure;
+- release-gate status for each supported backend.
+
+Data structures and artifacts:
+
+- `torch_osqp_stability_results.csv`;
+- `torch_osqp_stability_manifest.json`;
+- `torch_osqp_stability_summary.md`;
+- failure reproduction `.pt` files;
+- GitHub Actions artifacts for core, nightly, and CUDA promotion workflows.
+
+Functions and scripts:
+
+- `torch_osqp_stability.py`;
+- `bench_osqp_dense_reference.py`;
+- `bench_pygranso_osqp_workloads.py`;
+- `.github/workflows/torch-osqp-core.yml`;
+- `.github/workflows/torch-osqp-nightly.yml`;
+- `.github/workflows/torch-osqp-cuda-promotion.yml`.
+
+Validation:
+
+- deterministic pytest suite on every change;
+- nightly fixed-seed CPU stability buckets;
+- self-hosted real-hardware accelerator promotion buckets;
+- benchmark gate for automatic accelerator promotion.
+
+Exit criteria:
+
+- zero unexplained failures inside the supported size, dtype, conditioning, and
+  backend matrix;
+- stress rows are classified as stress evidence, not as support claims.
+
+#### Phase 5 - Backend promotion
+
+Goal: turn backend support on only after backend-specific evidence exists.
+
+Inputs:
+
+- Phase 4 evidence package;
+- real hardware for each claimed accelerator;
+- performance gate output.
+
+Outputs:
+
+- updated backend support matrix;
+- promoted/unpromoted accelerator decision;
+- public `auto` behavior aligned with the support matrix.
+
+Data structures:
+
+- `PROMOTED_ACCELERATOR_BACKENDS`;
+- support matrix in this document;
+- release evidence manifests.
+
+Functions:
+
+- `_accelerator_capability(...)`;
+- `_select_backend(...)`;
+- `bench_pygranso_osqp_workloads.py`.
+
+Validation:
+
+- CPU support gates on Linux, Windows, and macOS;
+- CUDA correctness, stress, and no-worse-than-5x end-to-end median runtime;
+- ROCm and MPS remain unclaimed until real runners exist.
+
+Exit criteria:
+
+- no backend is promoted by assumption;
+- `auto` routes only to backends with current evidence.
+
+#### Phase 6 - Documentation, PDF, and release handoff
+
+Goal: make the implementation reviewable and reproducible.
+
+Inputs:
+
+- final code, tests, workflows, and evidence;
+- this Markdown specification;
+- completion audit.
+
+Outputs:
+
+- maintained Markdown specification;
+- decision-complete `docs/plans` roadmap and phase plans;
+- rendered PDF;
+- completion audit;
+- code-edit report entries;
+- release tracking report under `F:\UMN Researches\Ju Research\Report`;
+- release PR notes.
+
+Data structures and artifacts:
+
+- `docs/FULL_DEVELOPMENT_AND_VALIDATION_PIPELINE.md`;
+- `docs/TORCH_OSQP_COMPLETION_AUDIT.md`;
+- `docs/plans/roadmap.md` and linked phase plans;
+- `output/pdf/Full Development and Validation Pipeline - Revised.pdf`;
+- `.codex/code-edit-log.md`.
+
+Functions and scripts:
+
+- `scripts/render_pipeline_pdf.py`;
+- git/CI evidence inspection commands.
+
+Validation:
+
+- Markdown headings and code blocks render cleanly;
+- PDF includes table of contents, support matrix, risk table, roadmap,
+  decision log, and controlled page breaks;
+- audit status matches current source and evidence.
+
+Exit criteria:
+
+- a reviewer can follow the roadmap from public API to data model to validation
+  evidence without reading implementation code first.
+
+### 8. Canonical QP contract
 
 Solve:
 
@@ -110,7 +552,7 @@ Requirements:
 - Near-symmetric P is replaced by 0.5 * (P + P.T) only when its infinity-norm asymmetry is within a dtype-aware tolerance.
 - A diagnostic eigenvalue check is available for tests and debugging; it is not paid on every solve.
 
-### 8. Dense linear-solver lifecycle
+### 9. Dense linear-solver lifecycle
 
 The private solver owns the matrix and its LU factors.
 
@@ -136,7 +578,7 @@ updates to q, l, and u. A change to P or A values refactorizes. A change to
 dimensions, sparsity pattern, constraint ordering, dtype, device, or backend
 invalidates the complete workspace.
 
-### 9. Optimizer-owned workspace
+### 10. Optimizer-owned workspace
 
 Each BFGS-SQP run owns one private `TorchOSQPWorkspace`. It stores:
 
@@ -151,7 +593,7 @@ Each BFGS-SQP run owns one private `TorchOSQPWorkspace`. It stores:
 Independent, nested, or concurrent PyGRANSO runs never share warm state or
 factorizations through module globals.
 
-### 10. Preserved OSQP equations
+### 11. Preserved OSQP equations
 
 The direct KKT system is:
 
@@ -180,16 +622,16 @@ r_dual   = ||P x + q + A' y||_inf
 Nonunique problems are accepted by feasibility, stationarity, objective, and
 compatible status rather than by matching x exactly.
 
-### 11. Required numerical features
+### 12. Required numerical features
 
-#### 11.1 Ruiz scaling
+#### 12.1 Ruiz scaling
 
 Use ten deterministic diagonal-equilibration passes, solve the scaled problem,
 then unscale x, z, and y. Reuse cached scaling for vector-only parametric
 updates. All acceptance residuals and objectives are reported in original
 coordinates.
 
-#### 11.2 Adaptive rho
+#### 12.2 Adaptive rho
 
 Use a deterministic interval of 50 and an update tolerance of 5. Equality rows
 receive the larger vector-valued rho policy. Every accepted rho change rebuilds
@@ -197,20 +639,20 @@ and refactorizes K while continuing from the current x, z, and y.
 
 <!-- PAGEBREAK -->
 
-#### 11.3 Polishing
+#### 12.3 Polishing
 
 Build the active-set polishing KKT system through the same LU boundary. Reuse
 the factorization for refinement steps. A candidate is accepted only when its
 KKT metric is no worse or it satisfies the target tolerances. A factorization,
 refinement, or candidate-acceptance failure raises when polishing was requested.
 
-#### 11.4 Warm starts
+#### 12.4 Warm starts
 
 Warm starts are enabled internally. Compatible vector updates reuse x, z, y,
 rho, scaling, and LU. Matrix-value updates retain x, z, and y but recompute
 scaling and factors. Structural changes clear the workspace.
 
-### 12. Defaults
+### 13. Defaults
 
 | Setting | Default |
 | --- | ---: |
@@ -230,7 +672,7 @@ scaling and factors. Structural changes clear the workspace.
 | polish_refine_iter | 3 |
 | warm_start | true |
 
-### 13. Backend selection and fallback
+### 14. Backend selection and fallback
 
 | Request | Behavior |
 | --- | --- |
@@ -247,7 +689,7 @@ Fallback diagnostics include the requested and selected backends, the original
 exception or status, the fallback backend and outcome, and whether data moved
 between accelerator and CPU.
 
-### 14. Status and error semantics
+### 15. Status and error semantics
 
 - Return structured statuses for solved and maximum-iteration outcomes.
 - Raise for invalid inputs, unsupported explicit operations, LU failure, NaN or Inf, and numerical polishing failure.
@@ -256,7 +698,7 @@ between accelerator and CPU.
 - Never label a linear solve failure as infeasibility.
 - Move primal and dual infeasibility certificates and nonconvex detection to a future milestone.
 
-### 15. Validation pipeline
+### 16. Validation pipeline
 
 ```text
 Dense LU unit tests
@@ -280,7 +722,7 @@ Inside the supported matrix, the failure budget is zero unexplained failures.
 Cases near condition number 1e10 are classified as stress evidence rather than
 as guaranteed support.
 
-### 16. Evidence package
+### 17. Evidence package
 
 Each stability run produces:
 
@@ -312,7 +754,7 @@ Differential tests use identical algorithm settings. They compare status,
 primal and dual residuals, objective, equality violation, bound violation, and
 finite values. Objective gaps use `abs(torch-reference) / max(1, abs(reference))`.
 
-### 17. Performance gate
+### 18. Performance gate
 
 Performance is not a correctness criterion. It controls only automatic backend
 promotion. On representative accelerator-targeted PyGRANSO workloads, the
@@ -328,7 +770,7 @@ were 12.48x, 21.33x, and 43.46x the builtin CPU median respectively. CUDA
 therefore remains explicit-only and `auto` records a warned
 `cuda_not_promoted` builtin fallback.
 
-### 18. Migration sequence
+### 19. Migration sequence
 
 1. Validate and preserve the sparse-CG/CUDA Graph research snapshot.
 2. Create and push archive branch `archive/sparse-cg-cuda-graph`.
@@ -341,7 +783,7 @@ therefore remains explicit-only and `auto` records a warned
 9. Add differential, randomized, hardware, PyGRANSO, and reporting gates.
 10. Promote each backend only after its own correctness and performance evidence passes.
 
-### 19. Decision log
+### 20. Decision log
 
 | Decision | Rationale |
 | --- | --- |
@@ -355,7 +797,7 @@ therefore remains explicit-only and `auto` records a warned
 | Backend-by-backend promotion | Support claims require real hardware |
 | Five-times performance ceiling | Prevents severe automatic regressions without making speed the success criterion |
 
-### 20. Future work
+### 21. Future work
 
 After the dense reference route passes all applicable gates, a sparse direct or
 iterative backend may implement the same factorize/solve/refactorize contract.

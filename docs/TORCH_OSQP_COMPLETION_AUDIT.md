@@ -1,6 +1,6 @@
 # Torch-OSQP Completion Audit
 
-Date: 2026-07-01  
+Date: 2026-07-04
 Scope: revised dense Torch reference pipeline and release gates
 
 This audit separates implemented behavior from local evidence and external
@@ -17,6 +17,7 @@ has produced evidence.
 | Dense private LU lifecycle | `torchLinearSolve.py` uses `lu_factor_ex`, `lu_solve`, finite/status checks, RHS normalization, reuse, and optional diagnostics | Implemented and unit tested |
 | Per-run state | `TorchOSQPWorkspace` is created by each `AlgBFGSSQP` and owns Torch/builtin state, signatures, scaling, factors, and diagnostics | Implemented and unit tested |
 | Invalidation contract | Structure, order signature, dimensions, dtype, device, and backend reset state; compatible value updates retain warm state and refactor | Implemented and unit tested |
+| Roadmap and Phase 2.1 data contract | `FULL_DEVELOPMENT_AND_VALIDATION_PIPELINE.md` section 7 now maps each milestone to inputs, outputs, data structures, functions, validation, and exit criteria; Phase 2.1 details `TorchOSQPWorkspace`, `DenseLUSolver`, and `LinearSolveDiagnostics` | Implemented |
 
 ## Numerical and public behavior
 
@@ -80,9 +81,11 @@ kernels.
 | Deliverable | Status |
 | --- | --- |
 | Two-part decision-complete Markdown specification | Implemented |
+| Roadmap-style milestone plan with clear data structures, inputs, outputs, functions, validation, and exit criteria | Implemented; `docs/plans/roadmap.md` is the checked/unchecked status source and links to the 14 phase plans |
 | Rendered PDF with TOC, support/risk tables, decision log, and controlled breaks | Implemented and visually inspected |
 | Dense benchmark and B1/B2/B3 performance gate | Implemented |
 | Code-edit log | Maintained at `.codex/code-edit-log.md` |
+| Release-readiness tracker | Maintained at `F:\UMN Researches\Ju Research\Report\2026-07-04_pygranso_torch_osqp_release_tracking.md` |
 
 ## Remaining release actions
 
