@@ -53,9 +53,9 @@ be unsupported by the requested numerical contract.
 | NVIDIA CUDA float64 | Earlier 300-row correctness evidence passed at `02e24fb`; current-source smoke evidence passed 2 rows, but 100-seed local GTX 1650 reruns exceeded the two-hour wrapper | Unpromoted; full current CUDA gate requires representative hardware |
 | NVIDIA CUDA qualified float32 | Earlier supported-family correctness evidence passed 200 rows at `02e24fb`; full stress remained non-gating/unpromoted | Unpromoted; representative promotion gate still required |
 | NVIDIA CUDA performance | B1/B2/B3 end-to-end medians 12.48x, 21.33x, and 43.46x builtin CPU | Failed; backend unpromoted |
-| Linux/Windows/macOS CPU matrix | GitHub Actions run `28557162633` on branch `feature/torch-osqp-dense-reference` | Passing on origin fork |
+| Linux/Windows/macOS CPU matrix | GitHub Actions run `28557162633` on branch `feature/torch-osqp-dense-reference`; fork `main` nightly run `28767699164` completed all Linux/Windows/macOS float32/float64 buckets | Passing on fork |
 | PyTorch 2.8 and current stable | Core workflow run `28557162633`, including Python 3.10-3.13 endpoints | Passing on origin fork |
-| Nightly 100-seed platform buckets | `torch-osqp-nightly.yml` exists on the feature branch, but GitHub cannot dispatch it until the workflow exists on the default branch | Configured; activation pending merge/default-branch registration |
+| Nightly 100-seed platform buckets | Fork `main` workflow run `28767699164`: 1800 total CPU cases, zero release-gate failures; float64 passed 900/900, float32 supported rows passed with 300 stress-only non-gating failures and reproduction files | Passing on fork; upstream default-branch registration still pending |
 | CUDA real-hardware promotion | Manual self-hosted correctness, stress, and 5x workflow exists on the feature branch; local GTX 1650 evidence is insufficient for promotion and 5x performance gate fails | Configured; CUDA remains unpromoted |
 | ROCm and Apple MPS | No real runner | Unclaimed by design |
 
@@ -89,9 +89,9 @@ kernels.
 
 ## Remaining release actions
 
-1. Open or update the release PR from `feature/torch-osqp-dense-reference`.
-2. Merge/register the feature-branch-only nightly and CUDA workflows before
-   relying on workflow dispatch or schedules for those gates.
+1. Obtain upstream review/merge permission for PR `#63`.
+2. Merge/register the feature-branch-only nightly and CUDA workflows on upstream
+   `main` before relying on upstream workflow dispatch or schedules.
 3. Keep CUDA unpromoted until its representative end-to-end median is no worse
    than 5x builtin CPU OSQP.
 4. Obtain ROCm and MPS runners before making either support claim.

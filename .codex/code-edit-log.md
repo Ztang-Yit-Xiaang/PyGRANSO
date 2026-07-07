@@ -1166,3 +1166,56 @@ Entries record Codex-assisted work sessions, findings, validation, conclusions, 
 
 - Review the staged diff once more before committing or opening/updating the PR.
 
+## Fork nightly evidence audit update
+
+- Status: completed
+- Start local time: 2026-07-06 18:35:00 -05:00
+- End local time: 2026-07-06 18:42:05 -05:00
+- Duration: approximately 7m
+
+### Goal
+
+- Record the passing fork-local nightly CPU stability evidence in the release audit and roadmap without changing solver code or promoting accelerators.
+
+### What changed
+
+- docs/TORCH_OSQP_COMPLETION_AUDIT.md: added fork `main` nightly run `28767699164` evidence, including all Linux/Windows/macOS float32/float64 buckets and zero release-gate failures.
+- docs/plans/roadmap.md: checked the verified fork `main` workflow registration/nightly evidence tasks, kept upstream workflow registration and accelerator promotion tasks open, and clarified that PR `#63` still needs upstream review/merge.
+- Report/2026-07-04_pygranso_torch_osqp_release_tracking.md: appended the matching external research-notebook tracker entry outside Git.
+
+### What was found
+
+- Fork workflow run `28767699164` completed successfully on `Ztang-Yit-Xiaang/PyGRANSO` `main`.
+- The downloaded artifacts contain 1800 CPU cases and zero `release_gate=failed` rows.
+- Float64 passed all 900 rows; float32 supported rows passed while 300 float32 stress rows failed as non-gating `release_gate=not_applicable` evidence with reproduction telemetry.
+- CUDA remains unpromoted; ROCm and MPS remain unclaimed.
+- A stale zero-byte `.git/index.lock` was present from an earlier Git operation and was removed before continuing Git work.
+
+### Validation
+
+- `git diff --check -- docs\TORCH_OSQP_COMPLETION_AUDIT.md docs\plans\roadmap.md`: passed.
+- Local link check for `docs/plans/README.md` and `docs/plans/roadmap.md`: passed.
+- Placeholder scan across pipeline, audit, and plan docs: no unresolved template-token matches.
+- Mermaid/classDiagram/unrelated Workspace Manager scan across pipeline, audit, and plan docs: no matches.
+- Conservative support scan confirmed `n + m <= 2400`, float64 authoritative precision, CUDA unpromoted, and ROCm/MPS unclaimed remain documented.
+- Local CSV aggregation from `Report/fork-nightly-artifacts/28767699164`: 6 CSV files, 1800 total cases, zero release-gate failures.
+- Full solver/stability suites were not rerun because this step only records already-completed fork-nightly evidence.
+
+### Conclusion
+
+- The release audit and roadmap now reflect the passing fork-local nightly CPU evidence while preserving the upstream-blocked and accelerator-unpromoted release state.
+
+### Next steps
+
+**Codex can proceed:**
+
+- Commit and push this audit/roadmap/log update to the fork feature branch so PR `#63` includes the latest fork evidence.
+
+**Human reflection:**
+
+- The fork evidence is strong for CPU release-gate documentation, but upstream workflow registration still remains a separate governance/review step.
+
+### Human action
+
+- Review upstream PR `#63` when you have reviewer/maintainer support; do not treat CUDA/ROCm/MPS as promoted until their real-hardware gates pass.
+
