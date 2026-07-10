@@ -272,14 +272,14 @@ TestGateReport
 
 ## Testing Checklist
 
-- [ ] Input validation tests cover NaNs, `l > u`, shape/device/dtype mismatch, and material asymmetry.
-- [ ] LU tests cover reuse, refactorization, singular matrices, nonfinite RHS, and RHS shapes.
-- [ ] ADMM tests cover KKT assembly, projection, dual updates, residuals, and termination.
-- [ ] Scaling/adaptive/polishing tests cover success and failure paths.
-- [ ] Workspace invalidation tests cover all documented invalidation triggers.
-- [ ] Differential tests compare metrics, not iterates.
-- [ ] Metamorphic tests use deterministic equivalent transformations.
-- [ ] PyGRANSO tests cover steering, stationarity, penalty updates, B1/B2/B3, fallback, and full constrained runs.
+- [x] Input validation tests cover NaNs, `l > u`, shape/device/dtype mismatch, and material asymmetry.
+- [x] LU tests cover reuse, refactorization, singular matrices, nonfinite RHS, and RHS shapes.
+- [x] ADMM tests cover KKT assembly, projection, dual updates, residuals, and termination.
+- [x] Scaling/adaptive/polishing tests cover success and failure paths.
+- [x] Workspace invalidation tests cover all documented invalidation triggers.
+- [x] Differential tests compare metrics, not iterates.
+- [x] Metamorphic tests use deterministic equivalent transformations.
+- [x] PyGRANSO tests cover steering, stationarity, penalty updates, B1/B2/B3, fallback, and full constrained runs.
 
 ---
 

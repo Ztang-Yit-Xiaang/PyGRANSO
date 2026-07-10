@@ -956,14 +956,34 @@ Tasks:
 - [x] Verify roadmap checkboxes for already-implemented work.
 - [x] Open or update release PR from `feature/torch-osqp-dense-reference`.
 - [x] Verify fork `main` workflow registration and nightly CPU evidence.
-- [ ] Obtain upstream review/merge for PR `#63`.
-- [ ] Merge/register workflows on upstream `main` before relying on upstream schedules/dispatch.
-- [ ] Keep accelerator support claims conservative until promotion evidence exists.
 
 Exit Criteria:
 
 * Reviewer can follow public API, data model, solver lifecycle, validation, and
   release evidence without reading implementation code first.
+
+#### Phase 5.2 - Fork-Local Release Candidate Hardening
+
+Goal: treat the fork, not the original repo PR, as the active validation target, and review local/fork evidence.
+
+Plan file:
+
+* [phase_5.2_fork_local_hardening_plan.md](phase_5.2_fork_local_hardening_plan.md)
+
+Tasks:
+
+- [x] Run `git status --short --branch` to check local cleanliness.
+- [x] Confirm latest fork `main` core and nightly workflows pass.
+- [x] Aggregate and verify latest fork-main nightly artifacts (1800 CPU cases, 0 failures).
+- [x] Run local deterministic tests with temp-directory bypass where necessary.
+- [x] Document final release-candidate readiness status in external Report notebook.
+- [x] Do not merge or trigger upstream pull request actions.
+
+Exit Criteria:
+
+* Fork-local release readiness is defined, verified, and documented.
+* Core and nightly GHA workflows pass on the fork.
+* No accelerator support is overclaimed.
 
 ### 21. Migration Sequence
 
@@ -998,6 +1018,8 @@ Exit Criteria:
 | Backend-by-backend promotion | Support claims require real hardware and evidence |
 | Five-times performance ceiling | Prevent severe automatic regressions without making speed a correctness criterion |
 | Keep ROCm/MPS unclaimed | No real runner evidence exists yet |
+| PR deferred until project perfect | PR #63 and workflow registration are deferred to prevent merging before all aspects of the solver and platform verification are perfect |
+| Use built-in PyTorch routines | Avoid designing custom linear solvers; rely entirely on GPU-boosted built-in PyTorch linear algebra (e.g., lu_factor_ex/lu_solve) for correctness and standard acceleration |
 
 ### 23. Future Work
 

@@ -245,15 +245,15 @@ PyGRANSOIntegrationResult
 
 ## Testing Checklist
 
-- [ ] CPU `auto` path uses builtin OSQP.
-- [ ] Explicit `builtin` path remains unchanged.
-- [ ] Explicit `torch` path does not silently fall back.
-- [ ] Automatic Torch failure retries builtin with causal telemetry.
-- [ ] Workspace is created once per BFGS-SQP run.
-- [ ] Warm state is reused across compatible QP subproblems.
-- [ ] Steering and penalty update tests still pass.
-- [ ] B1/B2/B3 behavior remains covered.
-- [ ] Complete constrained optimization examples pass with supported backends.
+- [x] CPU `auto` path uses builtin OSQP.
+- [x] Explicit `builtin` path remains unchanged.
+- [x] Explicit `torch` path does not silently fall back.
+- [x] Automatic Torch failure retries builtin with causal telemetry.
+- [x] Workspace is created once per BFGS-SQP run.
+- [x] Warm state is reused across compatible QP subproblems.
+- [x] Steering and penalty update tests still pass.
+- [x] B1/B2/B3 behavior remains covered.
+- [x] Complete constrained optimization examples pass with supported backends.
 
 ---
 

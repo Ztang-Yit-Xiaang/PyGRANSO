@@ -87,11 +87,11 @@ kernels.
 | Code-edit log | Maintained at `.codex/code-edit-log.md` |
 | Release-readiness tracker | Maintained at `F:\UMN Researches\Ju Research\Report\2026-07-04_pygranso_torch_osqp_release_tracking.md` |
 
-## Remaining release actions
+## Remaining release actions (PR Deferred)
 
-1. Obtain upstream review/merge permission for PR `#63`.
+1. Obtain upstream review/merge permission for PR `#63` (Deferred: Do not do PR until project is perfect).
 2. Merge/register the feature-branch-only nightly and CUDA workflows on upstream
-   `main` before relying on upstream workflow dispatch or schedules.
+   `main` before relying on upstream schedules/dispatch (Deferred).
 3. Keep CUDA unpromoted until its representative end-to-end median is no worse
    than 5x builtin CPU OSQP.
 4. Obtain ROCm and MPS runners before making either support claim.

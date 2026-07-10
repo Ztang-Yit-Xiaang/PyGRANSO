@@ -292,12 +292,12 @@ stability_manifest.json
 
 ## Testing Checklist
 
-- [ ] CSV schema contains all required columns.
-- [ ] Manifest schema contains environment, backend, settings, and seed data.
-- [ ] Failure reproduction bundle is written for every failure.
-- [ ] Markdown summary totals match CSV data.
-- [ ] Unsupported backend skips include explicit reasons.
-- [ ] Local artifact directory is ignored or clearly excluded from release commits.
+- [x] CSV schema contains all required columns.
+- [x] Manifest schema contains environment, backend, settings, and seed data.
+- [x] Failure reproduction bundle is written for every failure.
+- [x] Markdown summary totals match CSV data.
+- [x] Unsupported backend skips include explicit reasons.
+- [x] Local artifact directory is ignored or clearly excluded from release commits.
 
 ---
 

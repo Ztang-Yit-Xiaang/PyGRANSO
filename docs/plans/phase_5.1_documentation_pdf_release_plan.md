@@ -271,14 +271,14 @@ LayoutReport
 
 ## Testing Checklist
 
-- [ ] Full pipeline document has reviewer summary and engineering specification.
-- [ ] KKT, ADMM, projection, dual-update, and residual equations are preserved.
-- [ ] Support matrix matches backend evidence.
-- [ ] Risk table and decision log are current.
-- [ ] Local plan links resolve.
-- [ ] PDF renders successfully when requested.
-- [ ] PDF layout is visually checked for code blocks, diagrams, and page breaks.
-- [ ] Code-edit report exists for every implementation task that modifies files.
+- [x] Full pipeline document has reviewer summary and engineering specification.
+- [x] KKT, ADMM, projection, dual-update, and residual equations are preserved.
+- [x] Support matrix matches backend evidence.
+- [x] Risk table and decision log are current.
+- [x] Local plan links resolve.
+- [x] PDF renders successfully when requested.
+- [x] PDF layout is visually checked for code blocks, diagrams, and page breaks.
+- [x] Code-edit report exists for every implementation task that modifies files.
 
 ---
 

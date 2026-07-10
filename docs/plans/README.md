@@ -51,11 +51,12 @@ No local `phase_2.1_plan.md` duplicate is created.
 ### Phase 5 — Documentation and release handoff
 
 - [phase_5.1_documentation_pdf_release_plan.md](phase_5.1_documentation_pdf_release_plan.md)
+- [phase_5.2_fork_local_hardening_plan.md](phase_5.2_fork_local_hardening_plan.md)
 
 ## Planning conventions
 
-- [ ] Each plan uses current PyGRANSO/Torch-OSQP files and functions.
-- [ ] Each plan includes UML-style class diagrams for every class/data holder it names.
-- [ ] Each plan breaks work into small checkboxes.
-- [ ] Each plan separates implementation, validation, and exit criteria.
-- [ ] Plans describe future/review work and must not overclaim support evidence.
+- [x] Each plan uses current PyGRANSO/Torch-OSQP files and functions.
+- [x] Each plan includes UML-style class diagrams for every class/data holder it names.
+- [x] Each plan breaks work into small checkboxes.
+- [x] Each plan separates implementation, validation, and exit criteria.
+- [x] Plans describe future/review work and must not overclaim support evidence.

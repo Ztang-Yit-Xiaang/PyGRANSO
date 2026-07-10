@@ -268,13 +268,13 @@ PerformanceReport
 
 ## Testing Checklist
 
-- [ ] Support matrix rejects unclaimed ROCm by default.
-- [ ] MPS float64 `auto` falls back to builtin CPU OSQP.
-- [ ] Oversized KKT dimensions block `auto` accelerator selection.
-- [ ] Memory preflight failure blocks `auto` accelerator selection.
-- [ ] Explicit `torch` does not silently fallback.
-- [ ] Performance gate uses runtime including transfers.
-- [ ] Documentation and runtime support matrix stay synchronized.
+- [x] Support matrix rejects unclaimed ROCm by default.
+- [x] MPS float64 `auto` falls back to builtin CPU OSQP.
+- [x] Oversized KKT dimensions block `auto` accelerator selection.
+- [x] Memory preflight failure blocks `auto` accelerator selection.
+- [x] Explicit `torch` does not silently fallback.
+- [x] Performance gate uses runtime including transfers.
+- [x] Documentation and runtime support matrix stay synchronized.
 
 ---
 

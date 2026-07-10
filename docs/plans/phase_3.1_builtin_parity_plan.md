@@ -250,13 +250,13 @@ ComparisonReport
 
 ## Testing Checklist
 
-- [ ] Identical settings are passed to builtin and Torch paths.
-- [ ] Float64 parity uses `1e-8` tolerances.
-- [ ] Float32 parity uses `1e-5` tolerances.
-- [ ] Status compatibility is checked independently from iterates.
-- [ ] Feasibility and stationarity metrics catch intentionally corrupted results.
-- [ ] Normalized objective gap handles near-zero and large objectives.
-- [ ] Differential failure output includes enough telemetry to reproduce the case.
+- [x] Identical settings are passed to builtin and Torch paths.
+- [x] Float64 parity uses `1e-8` tolerances.
+- [x] Float32 parity uses `1e-5` tolerances.
+- [x] Status compatibility is checked independently from iterates.
+- [x] Feasibility and stationarity metrics catch intentionally corrupted results.
+- [x] Normalized objective gap handles near-zero and large objectives.
+- [x] Differential failure output includes enough telemetry to reproduce the case.
 
 ---
 

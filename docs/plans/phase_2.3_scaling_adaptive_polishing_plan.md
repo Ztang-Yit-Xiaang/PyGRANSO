@@ -283,15 +283,15 @@ PolishResult
 
 ## Testing Checklist
 
-- [ ] Ruiz scaling is deterministic for fixed inputs.
-- [ ] Scaled/unscaled solutions preserve feasibility and objective within tolerance.
-- [ ] Infinite bounds remain valid through scaling.
-- [ ] Adaptive `rho` updates at deterministic intervals only.
-- [ ] Adaptive `rho` triggers refactorization exactly when needed.
-- [ ] Warm starts are reused for compatible value updates.
-- [ ] Warm starts are invalidated for structure, dtype, device, order, and backend changes.
-- [ ] Requested polishing success improves or preserves accepted residual/objective diagnostics.
-- [ ] Requested polishing failure raises.
+- [x] Ruiz scaling is deterministic for fixed inputs.
+- [x] Scaled/unscaled solutions preserve feasibility and objective within tolerance.
+- [x] Infinite bounds remain valid through scaling.
+- [x] Adaptive `rho` updates at deterministic intervals only.
+- [x] Adaptive `rho` triggers refactorization exactly when needed.
+- [x] Warm starts are reused for compatible value updates.
+- [x] Warm starts are invalidated for structure, dtype, device, order, and backend changes.
+- [x] Requested polishing success improves or preserves accepted residual/objective diagnostics.
+- [x] Requested polishing failure raises.
 
 ---
 

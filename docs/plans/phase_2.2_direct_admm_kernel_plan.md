@@ -264,14 +264,14 @@ DirectSolveOutput
 
 ## Testing Checklist
 
-- [ ] KKT matrix block dimensions match `(n+m, n+m)`.
-- [ ] RHS vector inputs are normalized to `(n+m, 1)`.
-- [ ] ADMM projection handles finite and infinite bounds.
-- [ ] Dual update matches the preserved OSQP equations.
-- [ ] Residual and objective diagnostics are finite on supported feasible convex QPs.
-- [ ] LU factorization count does not increase for vector-only ADMM iterations.
-- [ ] Explicit `torch` numerical failure raises.
-- [ ] `auto` numerical failure produces causal fallback telemetry.
+- [x] KKT matrix block dimensions match `(n+m, n+m)`.
+- [x] RHS vector inputs are normalized to `(n+m, 1)`.
+- [x] ADMM projection handles finite and infinite bounds.
+- [x] Dual update matches the preserved OSQP equations.
+- [x] Residual and objective diagnostics are finite on supported feasible convex QPs.
+- [x] LU factorization count does not increase for vector-only ADMM iterations.
+- [x] Explicit `torch` numerical failure raises.
+- [x] `auto` numerical failure produces causal fallback telemetry.
 
 ---
 
