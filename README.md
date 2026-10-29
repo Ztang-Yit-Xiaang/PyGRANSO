@@ -10,15 +10,17 @@ Please check https://ncvx.org for detailed instructions (introduction, installat
 PyGRANSO is AGPL v3.0 licensed, but it also contains a small portion of GPL code.  Please see the LICENSE_INFO folder for more information.
 
 <!-- BEGIN portfolio-project-animations -->
-## Animated project guide
+## Recorded project interactions
 
-These self-contained SVG animations explain the project workflow. They are illustrative guides, not recorded experiments or new performance results. Static content remains available when reduced motion is requested.
+These previews record interaction with original project figures, saved notebook outputs, source tests, or the actual project interface. They do not represent new experiments, model inference, or benchmark runs. Pointer-driven inspection, saved-result selection, and browser controls are captured below.
 
-### Torch-OSQP
+### Inspect the actual solver tests
 
-![Torch-OSQP — illustrative animation](docs/portfolio-animations/osqp-method-in-torch.svg)
+![Inspect the actual solver tests - recorded project interaction](docs/portfolio-previews/osqp-method-in-torch.gif)
 
-A conceptual QP-to-dense-KKT-to-residual-check sequence; this does not run PyGRANSO or certify convergence.
+Original test functions from the Torch-OSQP branch. Select a test to inspect its numerical contract; this browser does not execute PyTorch or certify solver readiness.
+
+[Original project material](https://github.com/Ztang-Yit-Xiaang/PyGRANSO/blob/b47640303a0e2d00b340ac9def0fcc9b020b6eba/tests/test_torch_osqp_direct.py)
 
 <!-- END portfolio-project-animations -->
 
